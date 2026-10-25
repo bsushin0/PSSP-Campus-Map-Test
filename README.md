@@ -1,47 +1,50 @@
-# PSSP Campus Map Test (GitHub Pages version)
+# PSSP Campus Map Test
 
-## Two folders in this zip
-- **upload-to-github/** goes in your public repository.
-- **KEEP-PRIVATE/** never goes on GitHub. It holds `private-data.json` (the building and street names, in plain text) and `vault-setup.html`. Keep it in the SharePoint admin folder.
+This is the map test for Purdue Student Safety Patrol. You click a building, street or landmark on the map and type its name or abbreviation. The test is graded in your browser.
 
-## How the protection works
-Nothing is readable from the public repository.
-- The public test page contains only the map shapes. All building and street names, abbreviations, accepted answers, which items are required, and the list of admin SP numbers are in `private.enc.json`, encrypted.
-- Two things open it: the admin passcode **and** a secret key file (`pssp-keyfile.txt`). The key file is 32 random bytes and is never put on GitHub. Because of it, a short password like `PSSPAdmin` cannot be guessed from the public files. An outsider would have to guess the key file too, which is not possible.
-- Saved results are encrypted with a separate vault password plus the same key file. Only `vault.html` can read them.
-- The admin passcode is no longer stored anywhere in the page. It is only the thing that unlocks `private.enc.json`.
-- Results are kept in memory only, never in browser storage, so closing the tab clears them.
+There are two versions:
 
-## One-time setup
-1. On your computer, open `KEEP-PRIVATE/vault-setup.html` (double-click).
-   - Choose `private-data.json` (same folder).
-   - Admin passcode: leave `PSSPAdmin` (or change it).
-   - Vault password: choose one. It can be the same as the admin passcode, because the key file is what makes it safe, but a different one is better.
-   - Click **Create the files**. Three files download: `pssp-keyfile.txt`, `private.enc.json`, `vault-key.json`.
-2. Put `pssp-keyfile.txt` in your private SharePoint admin folder. Do not upload it to GitHub. **If you lose it, the data and saved results cannot be opened.** Keep a second copy.
-3. Create a public GitHub repository and upload everything in `upload-to-github/` plus `private.enc.json` and `vault-key.json` (main folder). Do not upload `private-data.json`, `vault-setup.html` or `pssp-keyfile.txt`.
-4. Repository Settings, Pages: Source "Deploy from a branch", Branch `main`, folder `/ (root)`.
+- **Initial** is for new SPs. It covers every building, street and landmark and takes about 30 minutes.
+- **Refresher** is the yearly check. It covers about 40% of the items, picked at random, and takes 10 to 15 minutes. Every required item is always included.
 
-## Running a test
-1. An admin opens the test address (or the SharePoint page that embeds it), enters the admin passcode, chooses `pssp-keyfile.txt` (tick "Remember" on the admin computer to skip this next time), and clicks Unlock.
-2. The SP picks Initial or Refresher, enters name and SP number, and takes the test.
-3. Afterwards the admin clicks **Printable report**, then **Download report**, and saves it in SharePoint. Then **Save encrypted record**, and uploads that file to the repository's `database` folder (GitHub: Add file, Upload files, Commit).
-4. If a grade is changed later, approve it and click **Save encrypted record** again. Same file name, so it replaces the old copy.
+To pass you need at least 80% of the items you were tested on, and every required item (marked with a star) has to be right. Miss a required item and it's a retest no matter what your percentage is.
 
-## Reading saved results
-Open `vault.html`, enter the vault password, choose the key file, and the records load.
+## For SPs
 
-## Changing the test data later
-If the map or names change, you get a new `private-data.json`. In `vault-setup.html` use the second box ("update the test data only") with your existing key file. It makes a new `private.enc.json` to upload. Saved results stay readable.
+1. An admin opens the test for you and unlocks it. You won't need the passcode.
+2. Pick Initial or Refresher, then enter your name and SP number.
+3. Click something on the map. The answer box opens. Type the full name or the abbreviation and submit.
+4. Answered items turn blue so you can see what's left. Streets and buildings are different shades.
+5. Open spaces like malls and parks are yellow. They count as items too.
+6. The word bank lists every name that could be an answer. You can filter it. Use it to check spelling, not to find the answer, since it lists everything and not just what's on your test.
+7. Want to change an answer? Click the item and use Clear answer, then answer it again whenever you want.
+8. When you're done, click Finish. You can come back and fix things before you confirm.
 
-## Embedding in SharePoint
-Site settings, HTML Field Security, add `yourname.github.io`. Then add an Embed web part with:
-`<iframe src="https://yourname.github.io/yourrepo/" width="100%" height="900" style="border:0"></iframe>`
+Spelling doesn't need to be perfect, and common nicknames and abbreviations are accepted. A few places have more than one name, such as Lee-Such Tower, which is also Honors Residence North. Either one counts.
 
-## What is still not protected (honest limits)
-- Anyone who has both the passcode and the key file can read the answers and the saved results. Limit who gets the key file and treat it like a password.
-- An admin who unlocks the test is, for that session, holding the answer key in the browser. Do not hand an unlocked page to someone to inspect.
-- Grading happens in the browser, so there is no server to stop a determined admin-level user from tampering with a test they run.
-- If the key file or a password leaks, past files in the repository (including old Git history) stay readable with it. Create a new key and re-encrypt, but old copies remain readable to whoever has the old key.
-- The repository shows when files were added and how many. File names are hashes, so names and SP numbers are not visible.
-- Admin edits to item names (Admin mode) are saved only in the browser they were made in. To make them permanent, ask for a new `private-data.json`.
+## For admins
+
+**Starting a test.** Open the page, enter the admin passcode, choose the key file and click Unlock. Ticking "Remember the key file" on your own computer saves you picking it every time. Don't do that on a shared computer. Once it's unlocked, hand the screen to the SP.
+
+**After the test.** Do both of these every time:
+
+1. Click Printable report, then Download report, and save the file in the SharePoint Database/Reports folder.
+2. Click Save encrypted record, then upload that file to the `database` folder in this repo (Add file, Upload files, Commit).
+
+Results only exist in the open tab. If you close it before saving, they're gone.
+
+**Reviewing and changing a result.** Use Admin review. You'll need the passcode and your own SP number. Every admin SP number is checked, and your name goes on any change you make.
+
+- You can mark a missed item as correct or a correct one as wrong, with a reason. Changes are only pending until you click Approve and save. Revert throws them away.
+- To change the overall grade, use the Change grade button next to the grade.
+- After approving, click Save encrypted record again and upload it. It has the same file name as the original, so it replaces the old copy.
+
+**Refresher reports** are short on purpose. They show the grade and the items the SP missed. Initial reports show everything.
+
+**Reading saved results.** Open `vault.html`, enter the vault password and choose the key file. You get a list of every saved test. You can open one, download its report, or export everything to a CSV. The records are encrypted, so the files in `database` can't be read on GitHub.
+
+## Things to know
+
+- The key file and passwords are not in this repo and shouldn't be. Don't share them outside the admin group.
+- Anyone who has the passcode and the key file can see the answers. Treat them like a password.
+- Tests aren't stored in the browser. Save before you close the tab.
