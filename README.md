@@ -16,9 +16,10 @@ To pass you need at least 80% of the items you were tested on, and every require
 3. Click something on the map. The answer box opens. Type the full name or the abbreviation and submit.
 4. Answered items turn blue so you can see what's left. Streets and buildings are different shades.
 5. Open spaces like malls and parks are yellow. They count as items too.
-6. The word bank lists every name that could be an answer. You can filter it. Use it to check spelling, not to find the answer, since it lists everything and not just what's on your test.
-7. Want to change an answer? Click the item and use Clear answer, then answer it again whenever you want.
-8. When you're done, click Finish. You can come back and fix things before you confirm.
+6. Open the word bank while you're typing and what you've typed is already in its search box. The word bank lists every name that could be an answer. You can filter it. Use it to check spelling, not to find the answer, since it lists everything and not just what's on your test.
+7. Anything you type in the answer box is kept even if you don't submit it. The item gets a dashed outline and you'll see a note at the bottom of the panel. It only counts once you click Submit answer, and the Finish button warns you if any are still unsubmitted.
+8. Want to change an answer? Click the item and use Clear answer, then answer it again whenever you want.
+9. When you're done, click Finish. You can come back and fix things before you confirm.
 
 Spelling doesn't need to be perfect, and common nicknames and abbreviations are accepted. A few places have more than one name, such as Lee-Such Tower, which is also Honors Residence North. Either one counts.
 

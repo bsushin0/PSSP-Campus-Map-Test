@@ -81,6 +81,9 @@ h1{font:700 clamp(1.5rem,3.4vw,2.1rem)/1 var(--display); letter-spacing:.01em; m
 .b.ans{fill:var(--ansf); stroke:var(--ans); stroke-width:1.8}
 .b.ar.ans{fill:var(--ans); fill-opacity:.42; stroke:var(--ans); stroke-width:1.8}
 .sg.ans .sv,.sg.ans .sd{stroke:var(--ans); stroke-opacity:1}
+.b.dr:not(.ans):not(.sel){stroke:var(--ans); stroke-width:2; stroke-dasharray:5 3}
+.sg.dr:not(.ans):not(.sel) .sv{stroke:var(--ans); stroke-opacity:.75; stroke-dasharray:6 4}
+#drNote{flex-basis:100%; margin:0; font-size:.85rem; color:var(--goldink); background:var(--gold); padding:6px 8px}
 .key i.an{background:var(--ansf); border-color:var(--ans)}
 .key i.op{background:var(--gold); opacity:.3; border:1.5px dashed var(--ink2)}
 .wbf{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
@@ -347,6 +350,7 @@ select{font:500 .9rem var(--body); padding:9px 10px}
       </div>
 
       <div class="foot">
+        <p id="drNote" hidden role="status"></p>
         <button type="button" class="btn" id="bFinish">Finish test</button>
         <button type="button" class="lnk" id="bAdmin">Admin</button>
         <button type="button" class="btn" id="bBackRes" hidden>Back to results</button>
@@ -580,7 +584,7 @@ function applyOv(){
 }
 applyOv();
 
-const S={sel:null, ans:new Map(), rev:false};
+const S={sel:null, ans:new Map(), dr:new Map(), rev:false};
 const IDLE_HTML=document.getElementById('pIdle').innerHTML;
 const els=[], labels=new Map(); const defs=svg.querySelector('defs');
 
@@ -707,7 +711,7 @@ function wbRender(){
   const rows=wbRows($('#wbQ').value);
   $('#wbList').innerHTML=rows.length?rows.map(r=>`<div class="wbr">${r.code?`<button type="button" class="wbc" data-v="${esc(r.code)}">${esc(r.code)}</button>`:''}<button type="button" class="wbn" data-v="${esc(r.nm)}">${esc(r.nm)}</button><span class="wbt">${r.t}</span></div>`).join(''):'<p class="muted">Nothing matches.</p>';
 }
-function wbOpen(){ WBF='all'; $('#wbF').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f==='all'?'true':'false')); $('#wbMsg').textContent=''; $('#wbOv').hidden=false; wbRender(); $('#wbQ').focus(); }
+function wbOpen(){ WBF='all'; $('#wbF').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f==='all'?'true':'false')); $('#wbMsg').textContent=''; $('#wbQ').value=(!panels.ask.hidden&&!S.rev)?$('#guess').value.trim():''; $('#wbOv').hidden=false; wbRender(); $('#wbQ').focus(); }
 $('#hWB').onclick=wbOpen; $('#bWB').onclick=wbOpen;
 $('#wbClose').onclick=()=>{ $('#wbOv').hidden=true; if(!panels.ask.hidden) $('#guess').focus(); };
 $('#wbQ').addEventListener('input',wbRender);
@@ -755,7 +759,7 @@ function stOf(it){const o=OV.items[it.id]; return o&&o.v||'';}
 function paint(i){
   const it=items[i], e=els[i]; const r=ADM?(stOf(it)?{ok:stOf(it)==='ok'}:null):S.ans.get(i);
   const base=it.kind==='b'?(it.lm?'b lm':'b')+(it.rg?' ar':''):'sg';
-  e.setAttribute('class',base+((isActive(i)||ADM)?'':' off')+(r?(S.rev||ADM?(r.ok?' ok':' no'):' ans'):'')+(S.sel===i?' sel':''));
+  e.setAttribute('class',base+((isActive(i)||ADM)?'':' off')+(r?(S.rev||ADM?(r.ok?' ok':' no'):' ans'):'')+(S.dr.has(i)&&!S.rev&&!ADM?' dr':'')+(S.sel===i?' sel':''));
   if(((r&&S.rev)||ADM)&&!labels.has(i)){
     let t;
     if(it.kind==='s'){
@@ -768,7 +772,7 @@ function paintAll(){items.forEach((_,i)=>paint(i)); applyView();}
 const panels={idle:$('#pIdle'),ask:$('#pAsk'),res:$('#pRes')};
 function show(k){Object.entries(panels).forEach(([n,e])=>e.hidden=(n!==k));}
 function clearAns(){
-  const i=S.sel; if(i==null||S.rev) return; S.ans.delete(i); S.sel=null; paint(i); applyView(); stats(); show('idle');
+  const i=S.sel; if(i==null||S.rev) return; S.ans.delete(i); S.dr.delete(i); S.sel=null; paint(i); applyView(); stats(); show('idle'); drNote();
 }
 function lock(){}
 function select(i){
@@ -782,7 +786,7 @@ function select(i){
 function openAsk(i){
   const it=items[i], r=S.ans.get(i);
   show('ask'); $('#askT').textContent='What is this '+noun(it)+' called?';
-  const g=$('#guess'); g.value=r?r.g:''; g.placeholder=it.kind==='b'?'Name or abbreviation':'Street name'; g.focus({preventScroll:true}); g.select();
+  const g=$('#guess'); g.value=S.dr.has(i)?S.dr.get(i):(r?r.g:''); g.placeholder=it.kind==='b'?'Name or abbreviation':'Street name'; g.focus({preventScroll:true}); g.select();
   $('#pAsk button[type=submit]').textContent=r?'Update answer':'Submit answer'; $('#bClearA').hidden=!r;
 }
 function showResult(i){
@@ -798,7 +802,7 @@ function showResult(i){
     $('#resT').textContent='Answer recorded';
     $('#resN').textContent='“'+r.g+'”';
     $('#resA').textContent='Results are shown when you submit the test. You can change this answer until then.';
-    $('#resG').textContent='';
+    $('#resG').textContent=S.dr.has(i)?'You have an edit that is not submitted yet: \u201c'+S.dr.get(i)+'\u201d. Click Change answer, then Update answer to submit it.':'';
   }
   show('res'); $('#bNext').hidden=S.rev||!active().some(j=>!S.ans.has(j)); $('#bEdit').hidden=S.rev; $('#bClear').hidden=S.rev;
 }
@@ -806,7 +810,13 @@ function matches(it,g){const n=norm(g); if(!n) return false; return it._k.has(n)
 $('#pAsk').addEventListener('submit',e=>{
   e.preventDefault(); const i=S.sel; if(i==null||S.rev) return;
   const g=$('#guess').value.trim(); if(!g){$('#guess').focus(); return;}
-  S.ans.set(i,{g,ok:matches(items[i],g)}); paint(i); applyView(); stats(); showResult(i); lock();
+  S.ans.set(i,{g,ok:matches(items[i],g)}); S.dr.delete(i); drNote(); paint(i); applyView(); stats(); showResult(i); lock();
+});
+function drNote(){ const e=$('#drNote'); if(!e) return; const n=S.dr.size; e.hidden=!n||S.rev; e.textContent=n+(n===1?' answer is':' answers are')+' typed but not submitted. Open '+(n===1?'it':'each one')+' (dashed outline) and click Submit answer, or it will not count.'; }
+$('#guess').addEventListener('input',()=>{
+  const i=S.sel; if(i==null||S.rev||ADM) return; const v=$('#guess').value.trim(), r=S.ans.get(i);
+  if(!v||(r&&v===r.g)) S.dr.delete(i); else S.dr.set(i,$('#guess').value);
+  S.drAsked=false; paint(i); drNote();
 });
 $('#bClear').onclick=clearAns; $('#bClearA').onclick=clearAns;
 $('#bEdit').onclick=()=>{ if(S.sel!=null&&!S.rev) openAsk(S.sel); };
@@ -815,7 +825,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(!$('#arv').hid
 $('#bNext').onclick=()=>{
   const left=active().filter(i=>!S.ans.has(i)); if(!left.length) return;
   const pick=left[Math.floor(Math.random()*left.length)];
-  S.sel=null; select(pick);
+  const prevSel=S.sel; S.sel=null; if(prevSel!=null) paint(prevSel); select(pick);
   const it=items[pick];
   if(it.c[0]<view.x||it.c[0]>view.x+view.w||it.c[1]<view.y||it.c[1]>view.y+view.h){view.x=it.c[0]-view.w/2; view.y=it.c[1]-view.h/2; applyView();}
 };
@@ -836,7 +846,7 @@ function finish(){
   if(!S.rev){ S.rev=true; $('#bEdit').hidden=true; if(S.sel!=null&&S.ans.has(S.sel)) showResult(S.sel); labels.forEach(t=>t.remove()); labels.clear(); paintAll(); }
   $('#done').hidden=false; $('#bReview').focus();
 }
-$('#bFinish').onclick=finish;
+$('#bFinish').onclick=()=>{ if(S.dr.size&&!S.rev&&!S.drAsked){ S.drAsked=true; drNote(); const e=$('#drNote'); e.textContent+=' Click Finish test again to finish without them.'; return; } S.drAsked=false; finish(); };
 function setReview(on){
   document.body.classList.toggle('rv',on);
   ['#bFinish','#bAdmin','#hWB'].forEach(q=>{const e=$(q); if(e) e.hidden=on;});
@@ -848,7 +858,7 @@ $('#bReview').onclick=()=>{ $('#done').hidden=true; S.sel=null; show('idle'); se
 $('#bBackRes').onclick=()=>{ $('#done').hidden=false; $('#bReview').focus(); };
 function reset(){
   if(T.start){T.id=newId(); T.start=Date.now();}
-  S.ans.clear(); S.sel=null; S.passed=false; S.rev=false; endReview(); labels.forEach(t=>t.remove()); labels.clear();
+  S.ans.clear(); S.dr.clear(); S.drAsked=false; drNote(); S.sel=null; S.passed=false; S.rev=false; endReview(); labels.forEach(t=>t.remove()); labels.clear();
   show('idle'); lock(); paintAll(); stats(); $('#done').hidden=true; fit();
 }
 
@@ -893,12 +903,12 @@ $('#cvForm').addEventListener('submit',e=>{
   if(!sp){$('#cvErr').textContent='Enter your SP number.'; $('#cvSp').focus(); return;}
   T.name=n; T.sp=sp; T.id=newId(); T.start=Date.now(); T.mode=MODE;
   const w=$('#who'); w.textContent=`${n} · SP ${sp}${MODE==='refresher'?' · Refresher':''}`; w.hidden=false;
-  S.ans.clear(); S.rev=false; endReview(); labels.forEach(t=>t.remove()); labels.clear(); S.sel=null; paintAll(); stats(); show('idle');
+  S.ans.clear(); S.dr.clear(); S.drAsked=false; drNote(); S.rev=false; endReview(); labels.forEach(t=>t.remove()); labels.clear(); S.sel=null; paintAll(); stats(); show('idle');
   $('#cover').hidden=true; fit();
 });
 function newTaker(){
   T.name=''; T.sp=''; T.start=0; $('#who').hidden=true; $('#cvName').value=''; $('#cvSp').value='';
-  S.ans.clear(); S.rev=false; endReview(); S.sel=null; labels.forEach(t=>t.remove()); labels.clear(); paintAll(); stats(); show('idle');
+  S.ans.clear(); S.dr.clear(); S.drAsked=false; drNote(); S.rev=false; endReview(); S.sel=null; labels.forEach(t=>t.remove()); labels.clear(); paintAll(); stats(); show('idle');
   $('#done').hidden=true; showCover();
 }
 $('#bNewTaker').onclick=newTaker;
