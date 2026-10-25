@@ -27,18 +27,17 @@ Spelling doesn't need to be perfect, and common nicknames and abbreviations are 
 
 **Starting a test.** Open the page, enter the admin passcode, choose the key file and click Unlock. Ticking "Remember the key file" on your own computer saves you picking it every time. Don't do that on a shared computer. Once it's unlocked, hand the screen to the SP.
 
-**After the test.** Do both of these every time:
+**After the test.** Results save themselves. When the SP clicks Finish, the encrypted record is added to the `database` folder in this repo and the status line under the buttons says so. Approving a change in Admin review saves it again the same way.
 
-1. Click Printable report, then Download report, and save the file in the SharePoint Database/Reports folder.
-2. Click Save encrypted record, then upload that file to the `database` folder in this repo (Add file, Upload files, Commit).
+Still do this every time: click Printable report, then Download report, and save the file in the SharePoint Database/Reports folder.
 
-Results only exist in the open tab. If you close it before saving, they're gone.
+If the status line says it couldn't save, click Save encrypted record and upload that file to the `database` folder by hand (Add file, Upload files, Commit). Results only exist in the open tab until they're saved, so don't close it on an error.
 
 **Reviewing and changing a result.** Use Admin review. You'll need the passcode and your own SP number. Every admin SP number is checked, and your name goes on any change you make.
 
 - You can mark a missed item as correct or a correct one as wrong, with a reason. Changes are only pending until you click Approve and save. Revert throws them away.
 - To change the overall grade, use the Change grade button next to the grade.
-- After approving, click Save encrypted record again and upload it. It has the same file name as the original, so it replaces the old copy.
+- Approving saves the change to the repo automatically. It uses the same file name as the original, so it replaces the old copy.
 
 **Refresher reports** are short on purpose. They show the grade and the items the SP missed. Initial reports show everything.
 
@@ -48,4 +47,4 @@ Results only exist in the open tab. If you close it before saving, they're gone.
 
 - The key file and passwords are not in this repo and shouldn't be. Don't share them outside the admin group.
 - Anyone who has the passcode and the key file can see the answers. Treat them like a password.
-- Tests aren't stored in the browser. Save before you close the tab.
+- Tests aren't stored in the browser. Wait for the saved message before you close the tab.

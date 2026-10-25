@@ -1106,13 +1106,35 @@ async function encSave(rec){
   try{ const [t,n]=await Promise.all([encRecord(rec),encName(rec)]); await saveText(n,t,'application/json'); spNote('Saved '+n+'. Add it to the database folder in the repository.'); }
   catch(e){ spNote('Could not encrypt the record: '+(e&&e.message||e)); }
 }
+let GHQ=Promise.resolve();
+function ghSave(rec){
+  GHQ=GHQ.then(async()=>{
+    const g=window.__GH; if(!g) return;
+    spNote('Saving the encrypted result to the repository…');
+    try{
+      const [txt,n]=await Promise.all([encRecord(rec),encName(rec)]);
+      const url='https://api.github.com/repos/'+g.repo+'/contents/database/'+n, br=g.branch||'main';
+      const H={Authorization:'Bearer '+g.token,Accept:'application/vnd.github+json'};
+      for(let k=0;k<3;k++){
+        let sha; const r0=await fetch(url+'?ref='+br,{headers:H,cache:'no-store'});
+        if(r0.ok) sha=(await r0.json()).sha; else if(r0.status!==404) throw new Error('GitHub answered '+r0.status);
+        const body={message:'Save result '+n.slice(0,8),content:btoa(txt),branch:br}; if(sha) body.sha=sha;
+        const r=await fetch(url,{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},H),body:JSON.stringify(body)});
+        if(r.ok){ spNote('Saved to the repository database folder ('+n+').'); return; }
+        if(r.status!==409&&r.status!==422) throw new Error('GitHub answered '+r.status+(r.status===401||r.status===403?' (the saved token may have expired)':''));
+      }
+      throw new Error('the file kept changing, try again');
+    }catch(e){ spNote('Could not save to the repository: '+(e&&e.message||e)+'. Use Save encrypted record and upload the file by hand.'); }
+  });
+  return GHQ;
+}
 $('#bEnc').onclick=()=>encSave(LAST); $('#arvEnc').onclick=()=>encSave(ARV);
 function vaultNote(){ if(VKOK&&!SP.on) spNote('To keep this result: open the printable report and download it for SharePoint, then save the encrypted record and add it to the repository’s database folder.'); }
 function readRecs(){try{return JSON.parse(lsGet('pssp-rec')||'[]');}catch(e){return [];}}
 function storeRec(rec){
   const a=readRecs().filter(r=>r.id!==rec.id); a.unshift(rec); lsSet('pssp-rec',JSON.stringify(a.slice(0,100)));
   if(DBREF){ DBREF.collection('results').doc(rec.id).set({json:JSON.stringify(rec),at:rec.end,name:rec.name,sp:rec.sp}).catch(()=>{}); }
-  if(SP.on) spSave(rec); else vaultNote();
+  if(SP.on) spSave(rec); else if(window.__GH) ghSave(rec); else vaultNote();
 }
 async function openRecs(){
   $('#recs').hidden=false; $('#recsList').innerHTML='<p class="muted">Loading&hellip;</p>';
@@ -1434,7 +1456,7 @@ $('#unlF').addEventListener('submit',async function(e){
     var pw=$('#unlP').value, kf=await getKeyfile($('#unlK').files[0],$('#unlR').checked);
     var p=await open_(pw,kf);
     p.b.forEach(function(x,i){Object.assign(DATA.b[i],x);}); p.s.forEach(function(x,i){Object.assign(DATA.s[i],x);}); if(p.ov) DATA.ov=p.ov;
-    window.__ADM=p.admins; window.__PW=pw;
+    window.__ADM=p.admins; window.__PW=pw; window.__GH=(p.gh&&p.gh.token)?p.gh:null;
     $('#unl').remove(); window.__start();
   }catch(err){ m.textContent=err&&err.message||String(err); $('#unlB').disabled=false; }
 });
