@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PSSP Vault Setup</title>
+<style>
+:root{--bg:#E7ECEA;--panel:#F5F7F6;--ink:#16221F;--ink2:#46565A;--line:#C3CDCA;--gold:#E0A81E;--bad:#B93B34;--ok:#23804F}
+@media (prefers-color-scheme:dark){:root{--bg:#11181A;--panel:#192225;--ink:#E4ECEA;--ink2:#9CABAF;--line:#2B383C;--gold:#EBBB3F;--bad:#EE7B73;--ok:#4DBE85;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px max(16px,env(safe-area-inset-left,0px))}
+main{max-width:660px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{font:700 2rem/1 "Arial Narrow",system-ui,sans-serif;text-transform:uppercase;margin:0;padding-bottom:12px;border-bottom:3px solid var(--gold)}
+section{background:var(--panel);border:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:12px}
+h2{margin:0;font-size:1.05rem}
+p,li{margin:0;color:var(--ink2)}
+ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+label{font:600 .72rem ui-monospace,Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);display:block;margin-bottom:4px}
+input[type=password],input[type=text],input[type=file]{font:inherit;padding:10px;border:1.5px solid var(--ink2);background:var(--bg);color:var(--ink);width:100%}
+button{font:600 .95rem system-ui,sans-serif;padding:10px 16px;border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;align-self:flex-start}
+button.alt{background:transparent;color:var(--ink)}
+button:disabled{opacity:.5;cursor:default}
+.msg{min-height:1.3em;font-size:.9rem}.bad{color:var(--bad)}.ok{color:var(--ok)}
+code{font:.85rem ui-monospace,Menlo,Consolas,monospace}
+.warn{border-left:4px solid var(--gold);padding-left:10px}
+</style>
+</head>
+<body>
+<main>
+<h1>PSSP Vault Setup</h1>
+<p>Run this file on your own computer by double-clicking it. Nothing you type or load is sent anywhere. Do not upload this file's inputs (<code>private-data.json</code>) or the key file to GitHub.</p>
+
+<section>
+<h2>How the protection works</h2>
+<p>Two things are needed to open anything: a password <b>and</b> a secret key file. The key file is random and long, so even a short password such as <code>PSSPAdmin</code> cannot be guessed from what is posted on GitHub. Keep the key file in your private SharePoint admin folder, never in the repository.</p>
+</section>
+
+<section>
+<h2>First-time setup</h2>
+<div><label for="pd">1. Test data file (private-data.json from the package)</label><input id="pd" type="file" accept=".json"></div>
+<div><label for="ap">2. Admin passcode (opens the test and Admin mode)</label><input id="ap" type="password" value="PSSPAdmin" autocomplete="off"></div>
+<div><label for="vp">3. Vault password (opens saved results)</label><input id="vp" type="password" autocomplete="new-password" placeholder="Can be any password, ideally different from the admin passcode"></div>
+<button id="mk">Create the files</button>
+<p class="msg" id="m1" role="status"></p>
+<p>Three files download:</p>
+<ol>
+<li><code>pssp-keyfile.txt</code>: the secret key file. Store it in your private SharePoint admin folder and give it only to admins. <b>Do not upload it to GitHub.</b></li>
+<li><code>private.enc.json</code>: the encrypted building and street names. Upload to the main folder of the repository.</li>
+<li><code>vault-key.json</code>: the vault's public key. Upload to the main folder of the repository.</li>
+</ol>
+</section>
+
+<section>
+<h2>Later: update the test data only</h2>
+<p>Use this when you get a new <code>private-data.json</code> (for example, after a map change). It keeps your key file and vault, so saved results stay readable.</p>
+<div><label for="pd2">Test data file</label><input id="pd2" type="file" accept=".json"></div>
+<div><label for="kf2">Your key file (pssp-keyfile.txt)</label><input id="kf2" type="file" accept=".txt"></div>
+<div><label for="ap2">Admin passcode</label><input id="ap2" type="password" value="PSSPAdmin" autocomplete="off"></div>
+<button class="alt" id="up">Re-create private.enc.json</button>
+<p class="msg" id="m2" role="status"></p>
+</section>
+</main>
+<script>
+(function(){
+  var enc=new TextEncoder(), $=function(s){return document.querySelector(s);};
+  function b64(buf){var u=new Uint8Array(buf),s='';for(var i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s);}
+  function save(name,text){var u=URL.createObjectURL(new Blob([text],{type:'text/plain'})),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},4000);}
+  function unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+  /* key = HKDF( PBKDF2(password) + key file bytes ) */
+  async function deriveKey(pw,salt,iter,kf,usage){
+    var base=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveBits']);
+    var bits=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:salt,iterations:iter},base,256));
+    var ikm=new Uint8Array(64); ikm.set(bits,0); ikm.set(kf,32);
+    var h=await crypto.subtle.importKey('raw',ikm,'HKDF',false,['deriveKey']);
+    return crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt:salt,info:enc.encode('pssp-v2')},h,{name:'AES-GCM',length:256},false,usage);
+  }
+  async function sealJson(obj,pw,kf){
+    var salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), iter=600000;
+    var key=await deriveKey(pw,salt,iter,kf,['encrypt']);
+    var ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,enc.encode(JSON.stringify(obj)));
+    return {v:2,salt:b64(salt),iter:iter,iv:b64(iv),c:b64(ct)};
+  }
+  async function readFile(f){return f.text();}
+  function parseKeyfile(t){var m=String(t).trim().match(/^PSSP-KEY-1:([A-Za-z0-9+\/=]+)$/); if(!m) throw new Error('That is not a PSSP key file.'); var u=unb64(m[1]); if(u.length!==32) throw new Error('The key file is damaged.'); return u;}
+  function checkData(o){ if(!o||!Array.isArray(o.b)||!Array.isArray(o.s)||!Array.isArray(o.admins)) throw new Error('That is not the PSSP test data file.'); }
+  $('#mk').onclick=async function(){
+    var m=$('#m1'); m.className='msg'; $('#mk').disabled=true;
+    try{
+      if(!(window.crypto&&crypto.subtle)) throw new Error('Use Edge or Chrome.');
+      var f=$('#pd').files[0]; if(!f) throw new Error('Choose the private-data.json file first.');
+      var ap=$('#ap').value, vp=$('#vp').value;
+      if(ap.length<4) throw new Error('The admin passcode is too short.');
+      if(vp.length<4) throw new Error('Enter a vault password.');
+      var data=JSON.parse(await readFile(f)); checkData(data);
+      m.textContent='Working. This takes a few seconds…';
+      var kf=crypto.getRandomValues(new Uint8Array(32));
+      var kp=await crypto.subtle.generateKey({name:'RSA-OAEP',modulusLength:3072,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['encrypt','decrypt']);
+      var pub=await crypto.subtle.exportKey('jwk',kp.publicKey);
+      var priv=await crypto.subtle.exportKey('pkcs8',kp.privateKey);
+      var salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), iter=600000;
+      var key=await deriveKey(vp,salt,iter,kf,['encrypt']);
+      var wrapped=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,priv);
+      var vault={v:2,pub:pub,salt:b64(salt),iter:iter,iv:b64(iv),wrapped:b64(wrapped)};
+      var priv2=await sealJson(data,ap,kf);
+      save('pssp-keyfile.txt','PSSP-KEY-1:'+b64(kf)+'\n');
+      setTimeout(function(){save('private.enc.json',JSON.stringify(priv2));},400);
+      setTimeout(function(){save('vault-key.json',JSON.stringify(vault,null,1));},800);
+      m.className='msg ok'; m.textContent='Done. Three files were downloaded. Your browser may ask to allow multiple downloads.';
+    }catch(e){m.className='msg bad';m.textContent=e&&e.message||String(e);}
+    $('#mk').disabled=false;
+  };
+  $('#up').onclick=async function(){
+    var m=$('#m2'); m.className='msg'; $('#up').disabled=true;
+    try{
+      var f=$('#pd2').files[0], k=$('#kf2').files[0]; if(!f||!k) throw new Error('Choose both files.');
+      var kf=parseKeyfile(await readFile(k)), data=JSON.parse(await readFile(f)); checkData(data);
+      var ap=$('#ap2').value; if(ap.length<4) throw new Error('The admin passcode is too short.');
+      save('private.enc.json',JSON.stringify(await sealJson(data,ap,kf)));
+      m.className='msg ok'; m.textContent='Done. Upload the new private.enc.json to the repository.';
+    }catch(e){m.className='msg bad';m.textContent=e&&e.message||String(e);}
+    $('#up').disabled=false;
+  };
+})();
+</script>
+</body>
+</html>

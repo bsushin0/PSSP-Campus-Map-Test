@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>PSSP Vault</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#E7ECEA;--panel:#F5F7F6;--ink:#16221F;--ink2:#46565A;--line:#C3CDCA;--gold:#E0A81E;--bad:#B93B34;--ok:#23804F}
+@media (prefers-color-scheme:dark){:root{--bg:#11181A;--panel:#192225;--ink:#E4ECEA;--ink2:#9CABAF;--line:#2B383C;--gold:#EBBB3F;--bad:#EE7B73;--ok:#4DBE85;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px max(16px,env(safe-area-inset-left,0px))}
+main{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font:700 2rem/1 "Barlow Condensed","Arial Narrow",system-ui,sans-serif;text-transform:uppercase;margin:0;padding-bottom:12px;border-bottom:3px solid var(--gold)}
+.k{font:600 .68rem "IBM Plex Mono",ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.box{background:var(--panel);border:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px}
+p{margin:0;color:var(--ink2)}
+input[type=password],input[type=text],input[type=search]{font:inherit;padding:10px;border:1.5px solid var(--ink2);background:var(--bg);color:var(--ink);width:100%}
+button{font:600 .9rem Barlow,system-ui,sans-serif;padding:9px 14px;border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;border-radius:0}
+button.alt{background:transparent;color:var(--ink)}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.msg{min-height:1.3em;font-size:.9rem}.bad{color:var(--bad)}.ok{color:var(--ok)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th{font:600 .66rem "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);text-align:left;padding:6px 10px;border-bottom:2px solid var(--ink)}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.pass{color:var(--ok);font-weight:600}.fail{color:var(--bad);font-weight:600}
+.lnk{background:none;border:0;padding:2px;color:var(--ink);text-decoration:underline;font-weight:600;cursor:pointer}
+.ov{position:fixed;inset:0;background:rgba(10,16,18,.7);overflow:auto;padding:16px;display:flex;justify-content:center;align-items:flex-start;z-index:5}
+.ov[hidden]{display:none}
+.ovbar{position:sticky;top:0;display:flex;gap:10px;margin-bottom:10px}
+.ovin{display:flex;flex-direction:column;align-items:center;width:100%}
+.ovin .rp{margin:0 auto}
+.ovbar{justify-content:center}
+</style>
+</head>
+<body>
+<main>
+<h1>PSSP Vault</h1>
+
+<div class="box" id="lock">
+  <p>Results saved by the Campus Map Test are encrypted. Enter the vault password and choose the key file (<code>pssp-keyfile.txt</code>) to read them. Everything is decrypted in this browser and nothing is sent anywhere.</p>
+  <form id="lf" class="row" autocomplete="off">
+    <input type="password" id="pw" placeholder="Vault password" aria-label="Vault password" style="max-width:320px" autocomplete="current-password">
+    <input type="file" id="kf" accept=".txt" aria-label="Key file" style="max-width:320px">
+    <label style="display:flex;gap:6px;align-items:center;font-size:.85rem"><input type="checkbox" id="rem"> Remember the key file on this computer</label>
+    <button type="submit" id="ub">Unlock</button>
+  </form>
+  <p class="msg" id="lm" role="status"></p>
+</div>
+
+<div id="app" hidden>
+  <div class="box">
+    <div class="row">
+      <button id="rl">Load from repository</button>
+      <label class="k" style="margin-left:6px">or open files</label>
+      <input type="file" id="fi" multiple accept=".json" aria-label="Open encrypted files from this computer">
+      <button class="alt" id="csv">Export CSV</button>
+      <button class="alt" id="lk" style="margin-left:auto">Lock</button>
+    </div>
+    <div class="row">
+      <span class="k">Repository</span>
+      <input type="text" id="repo" placeholder="owner/repository" style="max-width:280px" aria-label="Repository as owner/repository">
+      <input type="search" id="q" placeholder="Search name, SP number or version" style="max-width:280px" aria-label="Search">
+    </div>
+    <p class="msg" id="am" role="status"></p>
+  </div>
+  <div class="box"><div class="tw" id="list"></div></div>
+</div>
+</main>
+
+<div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-label="Report">
+  <div class="ovin">
+    <div class="ovbar"><button id="dl">Download report</button><button class="alt" id="cl" style="background:var(--bg)">Close</button></div>
+    <div id="rb"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s);};
+var dec=new TextDecoder(), enc=new TextEncoder();
+function unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const typeOf=r=>r.lm?'Landmark':(r.k==='b'?'Building':'Street');
+const fmtDate=t=>new Date(t).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+const fmtTime=t=>new Date(t).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+const fmtDur=ms=>{const m=Math.max(1,Math.round(ms/60000)); return m>=60?Math.floor(m/60)+' h '+(m%60)+' min':m+' min';};
+const eff=r=>r.adm?(r.adm.ok?1:0):(r.ok?1:0);
+const initLbl=r=>r.ok?'Correct':(r.g==null?'Not answered':'Missed');
+const effLbl=r=>eff(r)?'Correct':(r.g==null?'Not answered':'Missed');
+function summarize(rec){
+  const rows=rec.rows, ok=rows.filter(eff).length, ok0=rows.filter(r=>r.ok).length, ans=rows.filter(r=>r.g!=null).length;
+  const rq=rows.filter(r=>r.rq), rqBad=rq.filter(r=>!eff(r)), rqBad0=rq.filter(r=>!r.ok);
+  const by={Building:[0,0],Landmark:[0,0],Street:[0,0]};
+  rows.forEach(r=>{const t=by[typeOf(r)]; t[1]++; if(eff(r)) t[0]++;});
+  const need=Math.ceil(0.8*rows.length-1e-9), n=rows.length;
+  const calcPass=n>0&&ok>=need&&!rqBad.length, pass0=n>0&&ok0>=need&&!rqBad0.length;
+  const ovr=rec.ovr||null;
+  return {total:n,ok,ok0,ans,rq,rqBad,by,pct:n?Math.round(ok/n*100):0,pct0:n?Math.round(ok0/n*100):0,need,calcPass,pass0,ovr,pass:ovr?ovr.res==='pass':calcPass,changed:rows.filter(r=>r.adm),log:rec.log||[]};
+}
+const REPORT_CSS=`
+:root{--rp-bg:#FFFFFF;--rp-ink:#14201D;--rp-mute:#55645F;--rp-line:#C9D1CE;--rp-tint:#EEF2F0;--rp-ok:#1D6B43;--rp-bad:#A8322C}
+.rp{width:min(820px,100%);background:var(--rp-bg);color:var(--rp-ink);font:14px/1.45 'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;padding:34px 38px 30px}
+.rp *{box-sizing:border-box}
+.rp h1{font:700 2.1rem/1 'Barlow Condensed','Arial Narrow',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.01em;margin:6px 0 0}
+.rp h2{font:700 1.1rem/1 'Barlow Condensed','Arial Narrow',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;margin:26px 0 8px;padding-bottom:5px;border-bottom:2px solid var(--rp-ink)}
+.rp .rpk{font:600 .66rem/1 'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--rp-mute)}
+.rp .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 20px;margin:18px 0 0;padding:14px 0;border-top:1px solid var(--rp-line);border-bottom:1px solid var(--rp-line)}
+.rp .meta div{min-width:0}.rp .meta dt{margin:0}.rp .meta dd{margin:4px 0 0;font-weight:600;font-size:1.05rem;overflow-wrap:anywhere}
+.rp .rpscore{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.rp .rpbig{font:700 4rem/1 'Barlow Condensed','Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.rp .rpstat{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.stat#stPass .v{font-size:.82rem;line-height:1.15}.stat#stPass.pass{background:var(--okbg);outline:2px solid var(--ok)}.stat#stPass.pass .v{color:var(--ok);font-weight:700;letter-spacing:.04em}.stat#stPass.bad .v{color:var(--bad)}
+.rp .banner{padding:9px 12px;font:700 1rem/1.2 'Barlow Condensed','Arial Narrow',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;border:2px solid}
+.rp .banner.y{color:var(--rp-ok);border-color:var(--rp-ok)}.rp .banner.n{color:var(--rp-bad);border-color:var(--rp-bad)}
+.rp table{width:100%;border-collapse:collapse;font-size:.8rem}
+.rp th{font:600 .62rem 'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--rp-mute);padding:4px 8px 5px 0;border-bottom:1px solid var(--rp-ink)}
+.rp td{padding:4px 8px 4px 0;border-bottom:1px solid var(--rp-line);vertical-align:top;overflow-wrap:anywhere}
+.rp tr{break-inside:avoid}
+.rp td.r{font-weight:700;white-space:nowrap}.rp td.r.y{color:var(--rp-ok)}.rp td.r.n{color:var(--rp-bad)}.rp td.r.u{color:var(--rp-mute)}
+.rp .sum td,.rp .sum th{font-size:.86rem}
+.rp .sig{display:grid;grid-template-columns:2fr 1fr;gap:28px;margin-top:38px}
+.rp .sig div{border-top:1px solid var(--rp-ink);padding-top:5px}
+.rp .rpfoot{margin-top:22px;font:500 .68rem 'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;color:var(--rp-mute);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.rp .tw{overflow-x:auto}
+.rp .rpa{font:500 .68rem/1.2 'Barlow',system-ui,sans-serif;color:var(--rp-mute);white-space:normal}
+@media print{.rp{width:100%;padding:0}.rp h2{break-after:avoid}.rp .sig{break-inside:avoid}.rp .tw{overflow:visible}}
+@page{margin:14mm}
+`;
+function rpRows(rows,withAddr){
+  return rows.map(r=>`<tr><td>${r.rq?'&#9733; ':''}${esc(r.n)}${r.c&&r.k==='b'&&!r.lm?` <span style="color:var(--rp-mute)">(${esc(r.c)})</span>`:''}</td><td>${typeOf(r)}</td><td>${r.g==null?'<em>No answer</em>':esc(r.g)}</td><td class="r ${eff(r)?'y':(r.g==null?'u':'n')}">${effLbl(r)}${r.adm?`<div class="rpa">Admin-changed (initial: ${initLbl(r)})</div>`:''}</td></tr>`).join('');
+}
+function rpTable(rows){
+  return rows.length?`<div class="tw"><table><thead><tr><th>Item</th><th>Type</th><th>Test-taker&rsquo;s answer</th><th>Result</th></tr></thead><tbody>${rpRows(rows)}</tbody></table></div>`:'<p class="rpk" style="margin:8px 0">None</p>';
+}
+function reportHtml(rec){
+  const m=summarize(rec), by=(a,b)=>a.n.localeCompare(b.n);
+  const rqRows=m.rq.slice().sort(by);
+  const missed=rec.rows.filter(r=>!eff(r)).sort((a,b)=>(b.rq-a.rq)||by(a,b));
+  const all=['Building','Landmark','Street'].flatMap(t=>rec.rows.filter(r=>typeOf(r)===t).sort(by));
+  const rqOk=m.rq.length-m.rqBad.length;
+  const banner=m.ovr?`<div class="banner ${m.pass?'y':'n'}">${m.pass?'Passed':'Retest'} &middot; admin-set result &middot; ${m.pct}% &middot; calculated result was ${m.calcPass?'pass':'retest'}</div>`:m.pass?`<div class="banner y">Passed &middot; ${m.pct}% &middot; all required items correct</div>`:m.rqBad.length?`<div class="banner n">Retest required &middot; missed required: ${m.rqBad.map(r=>esc(r.n)).join(', ')}</div>`:`<div class="banner n">Retest &middot; ${m.pct}% is below the 80% minimum</div>`;
+  return `<article class="rp">
+  <div class="rpk">Purdue Student Safety Patrol</div>
+  <h1>${rec.mode==='refresher'?'Refresher Test Record':'Campus Map Test Record'}</h1>
+  <div class="rpk" style="margin-top:6px">${rec.mode==='refresher'?'Refresher test':'Initial test'}</div>
+  <dl class="meta">
+    <div><dt class="rpk">Name</dt><dd>${esc(rec.name)}</dd></div>
+    <div><dt class="rpk">SP number</dt><dd>${esc(rec.sp)}</dd></div>
+    <div><dt class="rpk">Date</dt><dd>${fmtDate(rec.end)}</dd></div>
+    <div><dt class="rpk">Time</dt><dd>${fmtTime(rec.start)} &ndash; ${fmtTime(rec.end)} (${fmtDur(rec.end-rec.start)})</dd></div>
+  </dl>
+  <div class="rpscore">
+    <div class="rpbig">${m.pct}%</div>
+    <div class="rpstat"><div><b>${m.ok}</b> of <b>${m.total}</b> correct &middot; ${m.total-m.ans} not answered</div>
+      <div>Required &#9733; <b>${rqOk}/${m.rq.length}</b></div>${banner}</div>
+  </div>
+  ${(m.log.length||m.changed.length||m.ovr)?`<h2>Score adjustments</h2><p style="margin:0 0 6px">Initial score <b>${m.ok0}/${m.total} (${m.pct0}%)</b> &rarr; final score <b>${m.ok}/${m.total} (${m.pct}%)</b>. Initial result: <b>${m.pass0?'Pass':'Retest'}</b> &rarr; final result: <b>${m.pass?'Pass':'Retest'}</b>.</p>`:''}
+  ${rec.mode==='refresher'?`<h2>Missed or not answered (${missed.length})</h2>${missed.length?rpTable(missed):'<p>None. Every item was answered correctly.</p>'}`:`<h2>Score by type</h2>
+  <div class="tw"><table class="sum"><thead><tr><th>Type</th><th>Correct</th><th>Items</th></tr></thead><tbody>
+    ${Object.entries(m.by).filter(([,v])=>v[1]).map(([k,v])=>`<tr><td>${k}s</td><td>${v[0]}</td><td>${v[1]}</td></tr>`).join('')}
+  </tbody></table></div>
+  <h2>Required items &#9733;</h2>${rpTable(rqRows)}
+  <h2>Missed or not answered (${missed.length})</h2>${rpTable(missed)}
+  <h2>All items (${all.length})</h2>${rpTable(all)}`}
+  ${m.log.length?`<h2>Admin changes (${m.log.length})</h2><div class="tw"><table><thead><tr><th>Item</th><th>Initial</th><th>Change</th><th>Admin</th><th>Admin reason</th></tr></thead><tbody>${m.log.map(l=>`<tr><td>${esc(l.n)}${l.c?` <span style="color:var(--rp-mute)">(${esc(l.c)})</span>`:''}</td><td>${esc(l.init)}</td><td>${esc(l.from)} &rarr; <b>${esc(l.to)}</b></td><td>${esc(l.by)} (SP ${esc(l.sp)})<div class="rpa">${fmtDate(l.at)} ${fmtTime(l.at)}</div></td><td>${esc(l.why)}</td></tr>`).join('')}</tbody></table></div>`:''}
+  <div class="sig"><div class="rpk">Evaluator name and signature</div><div class="rpk">Date</div></div>
+  <div class="rpfoot"><span>Record ${esc(rec.id)}</span><span>Generated ${fmtDate(Date.now())} ${fmtTime(Date.now())}</span></div>
+</article>`;
+}
+var PRIV=null, RECS=[], CUR=null;
+
+var _enc=new TextEncoder();
+function _unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+function parseKeyfile(t){var m=String(t).trim().match(/^PSSP-KEY-1:([A-Za-z0-9+\/=]+)$/); if(!m) throw new Error('That is not a PSSP key file.'); var u=_unb64(m[1]); if(u.length!==32) throw new Error('The key file is damaged.'); return u;}
+async function getKeyfile(file,remember){
+  if(file){ var t=await file.text(); var u=parseKeyfile(t); if(remember){ try{localStorage.setItem('pssp-kf',t.trim());}catch(e){} } return u; }
+  var s=null; try{s=localStorage.getItem('pssp-kf');}catch(e){}
+  if(s){ try{return parseKeyfile(s);}catch(e){} }
+  throw new Error('Choose the key file (pssp-keyfile.txt).');
+}
+async function deriveKey(pw,salt,iter,kf,usage){
+  var base=await crypto.subtle.importKey('raw',_enc.encode(pw),'PBKDF2',false,['deriveBits']);
+  var bits=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:salt,iterations:iter},base,256));
+  var ikm=new Uint8Array(64); ikm.set(bits,0); ikm.set(kf,32);
+  var h=await crypto.subtle.importKey('raw',ikm,'HKDF',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt:salt,info:_enc.encode('pssp-v2')},h,{name:'AES-GCM',length:256},false,usage);
+}
+
+async function unlock(pw,kf){
+  var r=await fetch('vault-key.json',{cache:'no-store'}); if(!r.ok) throw new Error('vault-key.json was not found next to this page.');
+  var j=await r.json();
+  if(j.v!==2) throw new Error('This vault was made by an older setup page. Run the new vault-setup.html.');
+  var key=await deriveKey(pw,unb64(j.salt),j.iter,kf,['decrypt']);
+  var pk; try{ pk=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(j.iv)},key,unb64(j.wrapped)); }catch(e){ throw new Error('Wrong password or wrong key file.'); }
+  PRIV=await crypto.subtle.importKey('pkcs8',pk,{name:'RSA-OAEP',hash:'SHA-256'},false,['decrypt']);
+}
+async function decRec(text){
+  var o=JSON.parse(text); if(o.v!==1) throw new Error('unknown format');
+  var raw=await crypto.subtle.decrypt({name:'RSA-OAEP'},PRIV,unb64(o.k));
+  var aes=await crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['decrypt']);
+  var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},aes,unb64(o.c));
+  return JSON.parse(dec.decode(pt));
+}
+function guessRepo(){
+  var m=location.hostname.match(/^(.+)\.github\.io$/), seg=location.pathname.split('/').filter(Boolean)[0];
+  if(m) return m[1]+'/'+(seg&&!/\.html?$/.test(seg)?seg:m[1]+'.github.io');
+  return '';
+}
+var addMap=new Map();
+function add(rec){ if(rec&&rec.id&&rec.rows) addMap.set(rec.id,rec); RECS=Array.from(addMap.values()).sort(function(a,b){return b.end-a.end;}); }
+async function fromRepo(){
+  var repo=$('#repo').value.trim(); if(!/^[\w.-]+\/[\w.-]+$/.test(repo)){ msg('Enter the repository as owner/repository.','bad'); return; }
+  try{ localStorage.setItem('pssp-vault-repo',repo); }catch(e){}
+  msg('Loading…','');
+  var r=await fetch('https://api.github.com/repos/'+repo+'/contents/database',{headers:{Accept:'application/vnd.github+json'}});
+  if(!r.ok){ msg('Could not list the database folder ('+r.status+'). Use "open files" instead.','bad'); return; }
+  var files=(await r.json()).filter(function(f){return /\.enc\.json$/.test(f.name);}), bad=0;
+  for(var i=0;i<files.length;i+=6){
+    await Promise.all(files.slice(i,i+6).map(async function(f){
+      try{ var t=await fetch('database/'+encodeURIComponent(f.name),{cache:'no-store'}); if(!t.ok) t=await fetch(f.download_url,{cache:'no-store'}); add(await decRec(await t.text())); }
+      catch(e){ bad++; }
+    }));
+  }
+  render(); msg(files.length+' file'+(files.length===1?'':'s')+' found, '+RECS.length+' record'+(RECS.length===1?'':'s')+' readable'+(bad?', '+bad+' could not be read':'')+'.',bad?'bad':'ok');
+}
+async function fromFiles(list){
+  var bad=0; for(var i=0;i<list.length;i++){ try{ add(await decRec(await list[i].text())); }catch(e){ bad++; } }
+  render(); msg(RECS.length+' record'+(RECS.length===1?'':'s')+' readable'+(bad?', '+bad+' file'+(bad===1?'':'s')+' could not be read':'')+'.',bad?'bad':'ok');
+}
+function msg(t,c){ var m=$('#am'); m.textContent=t; m.className='msg '+(c||''); }
+function render(){
+  var q=$('#q').value.trim().toLowerCase();
+  var rows=RECS.filter(function(r){ return !q||(r.name+' '+r.sp+' '+(r.mode==='refresher'?'refresher':'initial')).toLowerCase().indexOf(q)>=0; });
+  $('#list').innerHTML=rows.length?'<table><thead><tr><th>Name</th><th>SP</th><th>Version</th><th>Date</th><th>Score</th><th>Result</th><th>Changed by admin</th><th></th></tr></thead><tbody>'+rows.map(function(r){
+    var m=summarize(r), i=RECS.indexOf(r);
+    return '<tr><td>'+esc(r.name)+'</td><td>'+esc(r.sp)+'</td><td>'+(r.mode==='refresher'?'Refresher':'Initial')+'</td><td>'+fmtDate(r.end)+'</td><td>'+m.pct+'% ('+m.ok+'/'+m.total+')</td><td class="'+(m.pass?'pass':'fail')+'">'+(m.pass?'Pass':'Retest')+'</td><td>'+(m.log.length?m.log.length+' change'+(m.log.length>1?'s':''):'No')+'</td><td><button class="lnk" data-i="'+i+'">Open</button></td></tr>';
+  }).join('')+'</tbody></table>':'<p>No records loaded yet.</p>';
+}
+function csvCell(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function exportCsv(){
+  var head=['Name','SP','Version','Date','Score','Percent','Result','Required correct','Required total','Missed items'];
+  var lines=[head.join(',')].concat(RECS.map(function(r){ var m=summarize(r);
+    return [r.name,r.sp,r.mode==='refresher'?'Refresher':'Initial',new Date(r.end).toISOString().slice(0,10),m.ok+'/'+m.total,m.pct,m.pass?'Pass':'Retest',m.rq.length-m.rqBad.length,m.rq.length,r.rows.filter(function(x){return !eff(x);}).map(function(x){return x.n;}).join('; ')].map(csvCell).join(','); }));
+  save('pssp-results.csv','﻿'+lines.join('\n'),'text/csv');
+}
+function save(name,text,type){ var u=URL.createObjectURL(new Blob([text],{type:type})),a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u);},4000); }
+function safe(s){return String(s).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'')||'x';}
+function reportDoc(rec){ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Campus Map Test – '+esc(rec.name)+' – SP '+esc(rec.sp)+'</title><style>html{color-scheme:light}body{margin:0;background:#fff;padding:16px}'+REPORT_CSS+'.rp{margin:0 auto}@media print{body{padding:0}}</style></head><body>'+reportHtml(rec)+'</body></html>'; }
+
+$('#lf').addEventListener('submit',async function(e){
+  e.preventDefault(); var m=$('#lm'); m.className='msg'; m.textContent='Unlocking…'; $('#ub').disabled=true;
+  try{
+    if(!(window.crypto&&crypto.subtle)) throw new Error('This browser cannot decrypt here. Use Edge or Chrome over https.');
+    var kf=await getKeyfile($('#kf').files[0],$('#rem').checked);
+    await unlock($('#pw').value,kf); $('#pw').value=''; $('#lock').hidden=true; $('#app').hidden=false;
+    var saved=''; try{ saved=localStorage.getItem('pssp-vault-repo')||''; }catch(x){}
+    $('#repo').value=saved||guessRepo(); if($('#repo').value) fromRepo(); else render();
+  }catch(err){ m.className='msg bad'; m.textContent=err&&err.message||String(err); }
+  $('#ub').disabled=false;
+});
+$('#rl').onclick=function(){ fromRepo(); };
+$('#fi').addEventListener('change',function(e){ fromFiles(e.target.files); e.target.value=''; });
+$('#csv').onclick=exportCsv; $('#q').addEventListener('input',render);
+$('#lk').onclick=function(){ PRIV=null; RECS=[]; addMap.clear(); $('#app').hidden=true; $('#lock').hidden=false; $('#lm').textContent=''; $('#list').innerHTML=''; };
+$('#list').addEventListener('click',function(e){ var b=e.target.closest('[data-i]'); if(!b) return; CUR=RECS[+b.dataset.i]; $('#rb').innerHTML='<style>'+REPORT_CSS+'</style>'+reportHtml(CUR); $('#ov').hidden=false; $('#ov').scrollTop=0; });
+$('#cl').onclick=function(){ $('#ov').hidden=true; };
+$('#dl').onclick=function(){ if(CUR) save('SP-'+safe(CUR.sp)+'_'+safe(CUR.name)+'_'+(CUR.mode==='refresher'?'Refresher':'Initial')+'.html',reportDoc(CUR),'text/html'); };
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('#ov').hidden) $('#ov').hidden=true; });
+})();
+</script>
+</body>
+</html>
