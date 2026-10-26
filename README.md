@@ -6,16 +6,6 @@ Here is the link to the practice site: [PSSP Campus Map Test](https://bsushin0.g
 
 Here is the link to the test site: [PSSP Campus Map Test](https://bsushin0.github.io/PSSP-Campus-Map-Test/)
 
-## What's in this repo
-
-```
-index.html        the test
-practice.html     the practice page for trainees
-vault.html        where admins read saved results
-data/             encrypted settings the pages load (test data, vault lock, shared edits, practice list)
-database/         encrypted test results, one file per test
-```
-
 The three pages are the only things you open. Everything else is loaded by them, so you shouldn't need to touch `data` or `database` by hand.
 
 There are three ways to use it:
@@ -80,9 +70,18 @@ Open `practice.html`. It goes straight to the map. There is no passcode, name, S
 
 Practice shows the correct names, so it's not the test. Don't use it to take the test.
 
+## What's in this repo
+
+```
+index.html        the test
+practice.html     the practice page for trainees
+vault.html        where admins read saved results
+data/             encrypted settings the pages load (test data, vault lock, shared edits, practice list)
+database/         encrypted test results, one file per test
+```
+
 ## Things to know
 
-- There are two passwords: the admin passcode for the test and the vault password for saved results. Neither is written in the page code, and only admins should have them.
+- There are two passwords: the admin passcode for the test and the vault password for saved results. Only admins should have them.
 - The protection is basic and meant to keep trainees from reading the answers during a proctored test. A short password could be guessed by someone who downloads the encrypted files.
-- The autosave token is stored with the test data and can change this repo. Keep it limited to this repo with Contents access only, and renew it before it expires.
 - Tests aren't stored in the browser. Wait for the saved message before you close the tab.
