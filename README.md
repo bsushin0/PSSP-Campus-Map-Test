@@ -2,6 +2,8 @@
 
 This is the map test for Purdue Student Safety Patrol. You click a building, street or landmark on the map and type its name or abbreviation. The test is graded in your browser.
 
+Here is the linnk to the site: `https://bsushin0.github.io/PSSP-Campus-Map-Test/`
+
 There are three ways to use it:
 
 - **Practice** (`practice.html`) is for trainees. Nothing is graded or saved, and you see right away whether each answer is right. See the practice section below.
