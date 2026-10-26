@@ -41,11 +41,9 @@ td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 <h1>PSSP Vault</h1>
 
 <div class="box" id="lock">
-  <p>Results saved by the Campus Map Test are encrypted. Enter the vault password and choose the key file (<code>pssp-keyfile.txt</code>) to read them. Everything is decrypted in this browser and nothing is sent anywhere.</p>
+  <p>Results saved by the Campus Map Test are encrypted. Enter the vault password to read them. Everything is decrypted in this browser and nothing is sent anywhere.</p>
   <form id="lf" class="row" autocomplete="off">
     <input type="password" id="pw" placeholder="Vault password" aria-label="Vault password" style="max-width:320px" autocomplete="current-password">
-    <input type="file" id="kf" accept=".txt" aria-label="Key file" style="max-width:320px">
-    <label style="display:flex;gap:6px;align-items:center;font-size:.85rem"><input type="checkbox" id="rem"> Remember the key file on this computer</label>
     <button type="submit" id="ub">Unlock</button>
   </form>
   <p class="msg" id="lm" role="status"></p>
@@ -174,29 +172,13 @@ function reportHtml(rec){
 }
 var DATAREPO='', PRIV=null, RECS=[], CUR=null;
 
-var _enc=new TextEncoder();
-function _unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
-function parseKeyfile(t){var m=String(t).trim().match(/^PSSP-KEY-1:([A-Za-z0-9+\/=]+)$/); if(!m) throw new Error('That is not a PSSP key file.'); var u=_unb64(m[1]); if(u.length!==32) throw new Error('The key file is damaged.'); return u;}
-async function getKeyfile(file,remember){
-  if(file){ var t=await file.text(); var u=parseKeyfile(t); if(remember){ try{localStorage.setItem('pssp-kf',t.trim());}catch(e){} } return u; }
-  var s=null; try{s=localStorage.getItem('pssp-kf');}catch(e){}
-  if(s){ try{return parseKeyfile(s);}catch(e){} }
-  throw new Error('Choose the key file (pssp-keyfile.txt).');
-}
-async function deriveKey(pw,salt,iter,kf,usage){
-  var base=await crypto.subtle.importKey('raw',_enc.encode(pw),'PBKDF2',false,['deriveBits']);
-  var bits=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:salt,iterations:iter},base,256));
-  var ikm=new Uint8Array(64); ikm.set(bits,0); ikm.set(kf,32);
-  var h=await crypto.subtle.importKey('raw',ikm,'HKDF',false,['deriveKey']);
-  return crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt:salt,info:_enc.encode('pssp-v2')},h,{name:'AES-GCM',length:256},false,usage);
-}
-
-async function unlock(pw,kf){
+async function unlock(pw){
   var r=await fetch('vault-key.json',{cache:'no-store'}); if(!r.ok) throw new Error('vault-key.json was not found next to this page.');
   var j=await r.json(); DATAREPO=j.dataRepo||'';
-  if(j.v!==2) throw new Error('This vault was made by an older setup page. Run the new vault-setup.html.');
-  var key=await deriveKey(pw,unb64(j.salt),j.iter,kf,['decrypt']);
-  var pk; try{ pk=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(j.iv)},key,unb64(j.wrapped)); }catch(e){ throw new Error('Wrong password or wrong key file.'); }
+  if(j.v!==3) throw new Error('This vault is from an older setup. Make a new one with vault-setup.html.');
+  var base=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveKey']);
+  var key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:unb64(j.salt),iterations:j.iter},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  var pk; try{ pk=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(j.iv)},key,unb64(j.wrapped)); }catch(e){ throw new Error('Wrong password.'); }
   PRIV=await crypto.subtle.importKey('pkcs8',pk,{name:'RSA-OAEP',hash:'SHA-256'},false,['decrypt']);
 }
 async function decRec(text){
@@ -256,8 +238,7 @@ $('#lf').addEventListener('submit',async function(e){
   e.preventDefault(); var m=$('#lm'); m.className='msg'; m.textContent='Unlocking…'; $('#ub').disabled=true;
   try{
     if(!(window.crypto&&crypto.subtle)) throw new Error('This browser cannot decrypt here. Use Edge or Chrome over https.');
-    var kf=await getKeyfile($('#kf').files[0],$('#rem').checked);
-    await unlock($('#pw').value,kf); $('#pw').value=''; $('#lock').hidden=true; $('#app').hidden=false;
+    await unlock($('#pw').value); $('#pw').value=''; $('#lock').hidden=true; $('#app').hidden=false;
     var saved=''; try{ saved=localStorage.getItem('pssp-vault-repo')||''; }catch(x){}
     $('#repo').value=saved||DATAREPO||guessRepo(); if($('#repo').value) fromRepo(); else render();
   }catch(err){ m.className='msg bad'; m.textContent=err&&err.message||String(err); }

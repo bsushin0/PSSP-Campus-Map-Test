@@ -44,7 +44,7 @@ If autosave is off or the status line says it couldn't save, click Save encrypte
 
 **Refresher reports** are short on purpose. They show the grade and the items the SP missed. Initial reports show everything.
 
-**Reading saved results.** Open `vault.html`, enter the vault password and choose the key file. The key file is only used here.  You get a list of every saved test. You can open one, download its report, or export everything to a CSV. The records are encrypted, so the files in `database` can't be read on GitHub.
+**Reading saved results.** Open `vault.html` and enter the vault password.  You get a list of every saved test. You can open one, download its report, or export everything to a CSV. The records are encrypted, so the files in `database` can't be read on GitHub.
 
 ## Practice for trainees
 
@@ -60,8 +60,7 @@ Practice shows the correct names, so it's not the test. Don't use it to take the
 
 ## Things to know
 
-- The key file and passwords are not in this repo and shouldn't be. Don't share them outside the admin group.
-- The test page is protected by the admin passcode only. It's there to stop trainees reading the answers during a proctored test, not to stop a determined person.
-- Saved results need the vault password and the key file, so they stay protected even though the passcode is short.
+- There are two passwords: the admin passcode for the test and the vault password for saved results. Neither is written in the page code, and only admins should have them.
+- The protection is basic and meant to keep trainees from reading the answers during a proctored test. A short password could be guessed by someone who downloads the encrypted files.
 - The autosave token is stored with the test data and can change this repo. Keep it limited to this repo with Contents access only, and renew it before it expires.
 - Tests aren't stored in the browser. Wait for the saved message before you close the tab.

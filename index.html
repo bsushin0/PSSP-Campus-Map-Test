@@ -1429,21 +1429,6 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 (function(){
 var _enc=new TextEncoder();
 function _unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
-function parseKeyfile(t){var m=String(t).trim().match(/^PSSP-KEY-1:([A-Za-z0-9+\/=]+)$/); if(!m) throw new Error('That is not a PSSP key file.'); var u=_unb64(m[1]); if(u.length!==32) throw new Error('The key file is damaged.'); return u;}
-async function getKeyfile(file,remember){
-  if(file){ var t=await file.text(); var u=parseKeyfile(t); if(remember){ try{localStorage.setItem('pssp-kf',t.trim());}catch(e){} } return u; }
-  var s=null; try{s=localStorage.getItem('pssp-kf');}catch(e){}
-  if(s){ try{return parseKeyfile(s);}catch(e){} }
-  throw new Error('Choose the key file (pssp-keyfile.txt).');
-}
-async function deriveKey(pw,salt,iter,kf,usage){
-  var base=await crypto.subtle.importKey('raw',_enc.encode(pw),'PBKDF2',false,['deriveBits']);
-  var bits=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:salt,iterations:iter},base,256));
-  var ikm=new Uint8Array(64); ikm.set(bits,0); ikm.set(kf,32);
-  var h=await crypto.subtle.importKey('raw',ikm,'HKDF',false,['deriveKey']);
-  return crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt:salt,info:_enc.encode('pssp-v2')},h,{name:'AES-GCM',length:256},false,usage);
-}
-
 var $=function(s){return document.querySelector(s);};
 async function open_(pw){
   var r=await fetch('private.enc.json',{cache:'no-store'}); if(!r.ok) throw new Error('private.enc.json was not found next to this page.');
