@@ -2,7 +2,21 @@
 
 This is the map test for Purdue Student Safety Patrol. You click a building, street or landmark on the map and type its name or abbreviation. The test is graded in your browser.
 
-Here is the link to the site: [PSSP Campus Map Test](https://bsushin0.github.io/PSSP-Campus-Map-Test/practice.html)
+Test site: [PSSP Campus Map Test](https://bsushin0.github.io/PSSP-Campus-Map-Test/)
+
+Practice site: [PSSP Campus Map Practice](https://bsushin0.github.io/PSSP-Campus-Map-Test/practice.html)
+
+To get to practice from the test site, click **Practice version** on the unlock screen, or on the first screen after an admin unlocks it. To get back, click **Go to the test** at the top of the practice page. The link is not shown during a test, so nobody leaves by accident and loses their answers.
+
+## What's in this repo
+
+```
+index.html        the test
+practice.html     the practice page for trainees
+vault.html        where admins read saved results
+data/             encrypted settings the pages load (test data, vault lock, shared edits, practice list)
+database/         encrypted test results, one file per test
+```
 
 The three pages are the only things you open. Everything else is loaded by them, so you shouldn't need to touch `data` or `database` by hand.
 
@@ -56,7 +70,7 @@ If autosave is off or the status line says it couldn't save, click Save encrypte
 
 ## Practice for trainees
 
-Open `practice.html`. It goes straight to the map. There is no passcode, name, SP number or version to pick.
+Open `practice.html`, or use the Practice version link on the test site. It goes straight to the map. There is no passcode, name, SP number or version to pick.
 
 - Click a building, street or landmark and type what you think it is. You see right away whether it's correct. Right answers turn green, wrong ones are red and the correct name shows on the map.
 - The switch under the title toggles between **testable items only** (what the real test covers, kept up to date from the test site) and **all items**.
