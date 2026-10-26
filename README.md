@@ -44,6 +44,10 @@ If autosave is off or the status line says it couldn't save, click Save encrypte
 - To change the overall grade, use the Change grade button next to the grade.
 - Approving saves the change to the repo automatically. It uses the same file name as the original, so it replaces the old copy.
 
+**Changing the test.** Admin mode also lets you fix a name, add accepted answers, mark an item required, or leave an item out of the test. Click Save changes on the item. If autosave is on, the change is saved to this repo and every admin gets it the next time they unlock the test. If autosave is off, it stays on that computer only. The practice page doesn't pick these changes up.
+
+**Cancelling a test.** If a test has started and you open Admin mode, there's a Cancel this test button at the top. Click it twice to confirm. The test is thrown away without saving anything and the page goes back to the first screen.
+
 **Refresher reports** are short on purpose. They show the grade and the items the SP missed. Initial reports show everything.
 
 **Reading saved results.** Open `vault.html` and enter the vault password.  You get a list of every saved test. You can open one, download its report, or export everything to a CSV. The records are encrypted, so the files in `database` can't be read on GitHub.

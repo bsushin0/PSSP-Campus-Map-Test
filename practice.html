@@ -362,7 +362,7 @@ select{font:500 .9rem var(--body); padding:9px 10px}
     <aside class="panel adm" id="admPanel" hidden aria-label="Admin review">
       <div class="top">
         <div><h2>Admin review</h2><p class="muted" id="admSum" style="margin-top:4px"></p></div>
-        <button type="button" class="btn alt" id="admExit">Exit admin</button>
+        <div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" class="btn alt" id="admCancel" hidden>Cancel this test</button><button type="button" class="btn alt" id="admExit">Exit admin</button></div>
       </div>
       <div class="prog" id="admProg" aria-hidden="true"><i class="p1"></i><i class="p2"></i></div>
       <div class="legend"><span><i class="dot ok"></i>Accurate</span><span><i class="dot bad"></i>Not accurate</span><span><i class="dot"></i>Not reviewed</span><span>&#9733; required &middot; &#9998; edited &middot; &#8856; left out of test</span></div>
@@ -1111,26 +1111,37 @@ async function encSave(rec){
   catch(e){ spNote('Could not encrypt the record: '+(e&&e.message||e)); }
 }
 let GHQ=Promise.resolve();
+async function ghPut(path,txt,msg){
+  const g=window.__GH, br=g.branch||'main', url='https://api.github.com/repos/'+g.repo+'/contents/'+path;
+  const H={Authorization:'Bearer '+g.token,Accept:'application/vnd.github+json'};
+  for(let k=0;k<3;k++){
+    let sha; const r0=await fetch(url+'?ref='+br,{headers:H,cache:'no-store'});
+    if(r0.ok) sha=(await r0.json()).sha; else if(r0.status!==404) throw new Error('GitHub answered '+r0.status);
+    const body={message:msg,content:btoa(txt),branch:br}; if(sha) body.sha=sha;
+    const r=await fetch(url,{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},H),body:JSON.stringify(body)});
+    if(r.ok) return;
+    if(r.status!==409&&r.status!==422) throw new Error('GitHub answered '+r.status+(r.status===401||r.status===403?' (the saved token may have expired)':''));
+  }
+  throw new Error('the file kept changing, try again');
+}
 function ghSave(rec){
   GHQ=GHQ.then(async()=>{
-    const g=window.__GH; if(!g) return;
+    if(!window.__GH) return;
     spNote('Saving the encrypted result to the repository…');
     try{
       const [txt,n]=await Promise.all([encRecord(rec),encName(rec)]);
-      const url='https://api.github.com/repos/'+g.repo+'/contents/database/'+n, br=g.branch||'main';
-      const H={Authorization:'Bearer '+g.token,Accept:'application/vnd.github+json'};
-      for(let k=0;k<3;k++){
-        let sha; const r0=await fetch(url+'?ref='+br,{headers:H,cache:'no-store'});
-        if(r0.ok) sha=(await r0.json()).sha; else if(r0.status!==404) throw new Error('GitHub answered '+r0.status);
-        const body={message:'Save result '+n.slice(0,8),content:btoa(txt),branch:br}; if(sha) body.sha=sha;
-        const r=await fetch(url,{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},H),body:JSON.stringify(body)});
-        if(r.ok){ spNote('Saved to the repository database folder ('+n+').'); return; }
-        if(r.status!==409&&r.status!==422) throw new Error('GitHub answered '+r.status+(r.status===401||r.status===403?' (the saved token may have expired)':''));
-      }
-      throw new Error('the file kept changing, try again');
+      await ghPut('database/'+n,txt,'Save result '+n.slice(0,8));
+      spNote('Saved to the repository database folder ('+n+').');
     }catch(e){ spNote('Could not save to the repository: '+(e&&e.message||e)+'. Use Save encrypted record and upload the file by hand.'); }
   });
   return GHQ;
+}
+async function sealOv(){
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), iter=600000;
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(window.__PW),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt,iterations:iter},base,{name:'AES-GCM',length:256},false,['encrypt']);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(OV)));
+  return JSON.stringify({v:3,salt:b64(salt),iter,iv:b64(iv),c:b64(ct)});
 }
 $('#bEnc').onclick=()=>encSave(LAST); $('#arvEnc').onclick=()=>encSave(ARV);
 function vaultNote(){ if(VKOK&&!SP.on) spNote('To keep this result: open the printable report and download it for SharePoint, then save the encrypted record and add it to the repository’s database folder.'); }
@@ -1181,6 +1192,7 @@ function persist(){
   OV.at=Date.now(); lsSet('pssp-ov',JSON.stringify(OV)); setMsg('Saved on this device.');
   clearTimeout(saveT);
   saveT=setTimeout(async()=>{
+    if(window.__GH&&window.__PW){ try{ await ghPut('overrides.enc.json',await sealOv(),'Update test settings'); setMsg('Saved for everyone. Other admin computers get it the next time they unlock the test.'); }catch(e){ setMsg('Saved on this device only. Could not save to the repository: '+(e&&e.message||e)); } return; }
     if(SP.on){ try{ await SP.put('','config-overrides.json',JSON.stringify(OV)); setMsg('Saved to SharePoint for every admin.'); }catch(e){ setMsg('Saved on this device only. SharePoint save failed: '+(e&&e.message||e)); } return; }
     if(!DBREF) return;
     try{ await DBREF.doc('config/overrides').set({json:JSON.stringify(OV),at:OV.at}); setMsg('Saved for everyone who opens the test.'); }
@@ -1283,7 +1295,8 @@ function enterAdmin(){
   ADM=true; $('#cover').hidden=true; $('#gate').hidden=true; $('#done').hidden=true; $('#report').hidden=true;
   $('#panel').hidden=true; $('#admPanel').hidden=false; $('#admEd').hidden=true; S.sel=null;
   labels.forEach(t=>t.remove()); labels.clear(); paintAll(); admRender(); fit();
-  setMsg(DBREF?'Edits are shared with everyone who opens the test.':'Edits are kept on this device. Use Export edits to move them elsewhere.');
+  setMsg(window.__GH?'Edits are saved for everyone (autosave is on).':(DBREF?'Edits are shared with everyone who opens the test.':'Edits are kept on this device only. Autosave is off, so other admins will not see them.'));
+  const ac=$('#admCancel'); ac.hidden=!(T.start&&!S.rev); ac.textContent='Cancel this test'; ac.dataset.armed='';
 }
 function exitAdmin(){
   ADM=false; $('#admPanel').hidden=true; $('#panel').hidden=false; S.sel=null;
@@ -1291,6 +1304,13 @@ function exitAdmin(){
   if(!T.start) showCover();
 }
 $('#admExit').onclick=exitAdmin;
+let cancelT=null;
+$('#admCancel').onclick=()=>{
+  const b=$('#admCancel');
+  if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Click again to discard this test'; clearTimeout(cancelT); cancelT=setTimeout(()=>{ b.dataset.armed=''; b.textContent='Cancel this test'; },6000); return; }
+  clearTimeout(cancelT); b.dataset.armed=''; b.textContent='Cancel this test';
+  exitAdmin(); newTaker();
+};
 const ADMIN_SPS=new Set([1,2,11,12,13,14,15,21,22,23,24,25]);
 let ADMID=null, GATE_NEXT=null;
 function parseSp(v){const m=String(v).trim().match(/^(?:sp[\s#.\-]*)?0*(\d{1,4})$/i); return m?+m[1]:null;}
