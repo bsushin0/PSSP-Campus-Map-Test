@@ -30,11 +30,11 @@ Spelling doesn't need to be perfect, and common nicknames and abbreviations are 
 
 **Starting a test.** Open the page, enter the admin passcode and click Unlock. The status line under the buttons says whether autosave is on. Then hand the screen to the SP.
 
-**After the test.** If autosave is on, results save themselves. When the SP clicks Finish, the encrypted record is added to the `database` folder of the results repository and the status line under the buttons says so. Approving a change in Admin review saves it again the same way.
+**After the test.** If autosave is on, results save themselves. When the SP clicks Finish, the encrypted record is added to the `database` folder in this repo and the status line under the buttons says so. Approving a change in Admin review saves it again the same way.
 
 Still do this every time: click Printable report, then Download report, and save the file in the SharePoint Database/Reports folder.
 
-If autosave is off or the status line says it couldn't save, click Save encrypted record and upload that file to the `database` folder of the results repository by hand (Add file, Upload files, Commit). Results only exist in the open tab until they're saved, so don't close it on an error.
+If autosave is off or the status line says it couldn't save, click Save encrypted record and upload that file to the `database` folder by hand (Add file, Upload files, Commit). Results only exist in the open tab until they're saved, so don't close it on an error.
 
 **Reviewing and changing a result.** Use Admin review. You'll need the passcode and your own SP number. Every admin SP number is checked, and your name goes on any change you make.
 
@@ -44,7 +44,7 @@ If autosave is off or the status line says it couldn't save, click Save encrypte
 
 **Refresher reports** are short on purpose. They show the grade and the items the SP missed. Initial reports show everything.
 
-**Reading saved results.** Open `vault.html`, enter the vault password and choose the key file. The key file is only used here. The vault reads the results repository, so if the repository name box is empty, type it once (`bsushin0/PSSP-Map-Test-Results`) and the browser remembers it. You get a list of every saved test. You can open one, download its report, or export everything to a CSV. The records are encrypted, so the files in `database` can't be read on GitHub.
+**Reading saved results.** Open `vault.html`, enter the vault password and choose the key file. The key file is only used here.  You get a list of every saved test. You can open one, download its report, or export everything to a CSV. The records are encrypted, so the files in `database` can't be read on GitHub.
 
 ## Practice for trainees
 
@@ -63,5 +63,5 @@ Practice shows the correct names, so it's not the test. Don't use it to take the
 - The key file and passwords are not in this repo and shouldn't be. Don't share them outside the admin group.
 - The test page is protected by the admin passcode only. It's there to stop trainees reading the answers during a proctored test, not to stop a determined person.
 - Saved results need the vault password and the key file, so they stay protected even though the passcode is short.
-- The autosave token is stored with the test data. Keep it limited to the results repository so it can't change this one.
+- The autosave token is stored with the test data and can change this repo. Keep it limited to this repo with Contents access only, and renew it before it expires.
 - Tests aren't stored in the browser. Wait for the saved message before you close the tab.
