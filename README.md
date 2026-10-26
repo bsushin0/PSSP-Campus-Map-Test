@@ -61,7 +61,7 @@ If autosave is off or the status line says it couldn't save, click Save encrypte
 Open `practice.html`. It goes straight to the map. There is no passcode, name, SP number or version to pick.
 
 - Click a building, street or landmark and type what you think it is. You see right away whether it's correct. Right answers turn green, wrong ones are red and the correct name shows on the map.
-- The button at the top left switches between **testable items only** (what the real test covers, kept up to date from the test site) and **all items**.
+- The switch under the title toggles between **testable items only** (what the real test covers, kept up to date from the test site) and **all items**.
 - **Show the answer** tells you what it is without counting anything against you.
 - Change answer lets you try again on the ones you missed.
 - The word bank works the same as on the test.
