@@ -25,13 +25,13 @@ Spelling doesn't need to be perfect, and common nicknames and abbreviations are 
 
 ## For admins
 
-**Starting a test.** Open the page, enter the admin passcode, choose the key file and click Unlock. Ticking "Remember the key file" on your own computer saves you picking it every time. Don't do that on a shared computer. Once it's unlocked, hand the screen to the SP.
+**Starting a test.** Open the page, enter the admin passcode and click Unlock. To turn on autosave, also choose the key file before you click Unlock (ticking "Remember" saves it on your own computer so you can skip this next time; don't do that on a shared computer). Once it's unlocked, hand the screen to the SP. The status line under the buttons says whether autosave is on.
 
-**After the test.** Results save themselves. When the SP clicks Finish, the encrypted record is added to the `database` folder in this repo and the status line under the buttons says so. Approving a change in Admin review saves it again the same way.
+**After the test.** If autosave is on, results save themselves. When the SP clicks Finish, the encrypted record is added to the `database` folder in this repo and the status line under the buttons says so. Approving a change in Admin review saves it again the same way.
 
 Still do this every time: click Printable report, then Download report, and save the file in the SharePoint Database/Reports folder.
 
-If the status line says it couldn't save, click Save encrypted record and upload that file to the `database` folder by hand (Add file, Upload files, Commit). Results only exist in the open tab until they're saved, so don't close it on an error.
+If autosave is off or the status line says it couldn't save, click Save encrypted record and upload that file to the `database` folder by hand (Add file, Upload files, Commit). Results only exist in the open tab until they're saved, so don't close it on an error.
 
 **Reviewing and changing a result.** Use Admin review. You'll need the passcode and your own SP number. Every admin SP number is checked, and your name goes on any change you make.
 
@@ -41,10 +41,10 @@ If the status line says it couldn't save, click Save encrypted record and upload
 
 **Refresher reports** are short on purpose. They show the grade and the items the SP missed. Initial reports show everything.
 
-**Reading saved results.** Open `vault.html`, enter the vault password and choose the key file. You get a list of every saved test. You can open one, download its report, or export everything to a CSV. The records are encrypted, so the files in `database` can't be read on GitHub.
+**Reading saved results.** Open `vault.html`, enter the vault password and choose the key file. The vault needs the key file; the test page doesn't. You get a list of every saved test. You can open one, download its report, or export everything to a CSV. The records are encrypted, so the files in `database` can't be read on GitHub.
 
 ## Things to know
 
 - The key file and passwords are not in this repo and shouldn't be. Don't share them outside the admin group.
-- Anyone who has the passcode and the key file can see the answers. Treat them like a password.
+- The test page is protected by the admin passcode alone, which is weak. Someone determined could work out the building and street names from the public files. Saved results and the autosave token also need the key file, so they stay protected.
 - Tests aren't stored in the browser. Wait for the saved message before you close the tab.

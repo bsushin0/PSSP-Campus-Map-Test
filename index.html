@@ -1414,10 +1414,10 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 <div id="unl" role="dialog" aria-modal="true" aria-labelledby="unlT">
 <form id="unlF" autocomplete="off">
 <h1 id="unlT">PSSP Campus Map Test</h1>
-<p>An administrator unlocks the test before it starts. Enter the admin passcode and choose the key file.</p>
+<p>An administrator unlocks the test before it starts. Enter the admin passcode.</p>
 <div><label for="unlP">Admin passcode</label><input type="password" id="unlP" autocomplete="current-password"></div>
-<div><label for="unlK">Key file (pssp-keyfile.txt)</label><input type="file" id="unlK" accept=".txt"></div>
-<label class="r" style="text-transform:none;letter-spacing:0;font-family:inherit"><input type="checkbox" id="unlR"> Remember the key file on this computer</label>
+<div><label for="unlK">Key file (optional, turns on autosave)</label><input type="file" id="unlK" accept=".txt"></div>
+<label class="r" style="text-transform:none;letter-spacing:0;font-family:inherit"><input type="checkbox" id="unlR"> Remember the key file on this computer (autosave)</label>
 <button type="submit" id="unlB">Unlock</button>
 <p class="m" id="unlM" role="status"></p>
 </form>
@@ -1442,22 +1442,30 @@ async function deriveKey(pw,salt,iter,kf,usage){
 }
 
 var $=function(s){return document.querySelector(s);};
-async function open_(pw,kf){
+async function open_(pw){
   var r=await fetch('private.enc.json',{cache:'no-store'}); if(!r.ok) throw new Error('private.enc.json was not found next to this page.');
-  var j=await r.json(); if(j.v!==2) throw new Error('Unsupported file version.');
-  var key=await deriveKey(pw,_unb64(j.salt),j.iter,kf,['decrypt']);
-  var pt; try{ pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(j.iv)},key,_unb64(j.c)); }catch(e){ throw new Error('Wrong passcode or wrong key file.'); }
+  var j=await r.json(); if(j.v!==3) throw new Error('private.enc.json is from an older setup. Make a new one with vault-setup.html.');
+  var base=await crypto.subtle.importKey('raw',_enc.encode(pw),'PBKDF2',false,['deriveKey']);
+  var key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:_unb64(j.salt),iterations:j.iter},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  var pt; try{ pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(j.iv)},key,_unb64(j.c)); }catch(e){ throw new Error('Wrong passcode.'); }
   return JSON.parse(new TextDecoder().decode(pt));
+}
+async function openGh(pw,kf){
+  var r=await fetch('autosave.enc.json',{cache:'no-store'}); if(!r.ok) return 'none';
+  var j=await r.json(); var key=await deriveKey(pw,_unb64(j.salt),j.iter,kf,['decrypt']);
+  try{ var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(j.iv)},key,_unb64(j.c)); return JSON.parse(new TextDecoder().decode(pt)); }catch(e){ return 'bad'; }
 }
 $('#unlF').addEventListener('submit',async function(e){
   e.preventDefault(); var m=$('#unlM'); m.textContent='Unlocking…'; $('#unlB').disabled=true;
   try{
     if(!(window.crypto&&crypto.subtle)) throw new Error('Use Edge or Chrome over https.');
-    var pw=$('#unlP').value, kf=await getKeyfile($('#unlK').files[0],$('#unlR').checked);
-    var p=await open_(pw,kf);
+    var pw=$('#unlP').value, kf=null, kfile=$('#unlK').files[0];
+    if(kfile) kf=await getKeyfile(kfile,$('#unlR').checked); else { try{ kf=await getKeyfile(null,false); }catch(e){} }
+    var p=await open_(pw);
     p.b.forEach(function(x,i){Object.assign(DATA.b[i],x);}); p.s.forEach(function(x,i){Object.assign(DATA.s[i],x);}); if(p.ov) DATA.ov=p.ov;
-    window.__ADM=p.admins; window.__PW=pw; window.__GH=(p.gh&&p.gh.token)?p.gh:null;
-    $('#unl').remove(); window.__start();
+    window.__ADM=p.admins; window.__PW=pw; window.__GH=null; var note='Autosave is off. Save each result by hand, or restart and choose the key file.';
+    if(kf){ var g=await openGh(pw,kf); if(g==='none') note='Autosave is not set up. Save each result by hand.'; else if(g==='bad') note='Autosave is off: that key file does not match. Save each result by hand.'; else { window.__GH=g; note='Autosave is on.'; } }
+    $('#unl').remove(); window.__start(); var st=document.querySelector('#spStat'); if(st) st.textContent=note;
   }catch(err){ m.textContent=err&&err.message||String(err); $('#unlB').disabled=false; }
 });
 $('#unlP').focus();
