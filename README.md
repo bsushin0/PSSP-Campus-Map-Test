@@ -6,6 +6,17 @@ Here is the link to the practice site: [PSSP Campus Map Test](https://bsushin0.g
 
 Here is the link to the test site: [PSSP Campus Map Test](https://bsushin0.github.io/PSSP-Campus-Map-Test/)
 
+## What's in this repo
+
+```
+index.html        the test
+practice.html     the practice page for trainees
+vault.html        where admins read saved results
+data/             encrypted settings the pages load (test data, vault lock, shared edits, practice list)
+database/         encrypted test results, one file per test
+```
+
+The three pages are the only things you open. Everything else is loaded by them, so you shouldn't need to touch `data` or `database` by hand.
 
 There are three ways to use it:
 
@@ -47,7 +58,7 @@ If autosave is off or the status line says it couldn't save, click Save encrypte
 - To change the overall grade, use the Change grade button next to the grade.
 - Approving saves the change to the repo automatically. It uses the same file name as the original, so it replaces the old copy.
 
-**Changing the test.** Admin mode also lets you fix a name, add accepted answers, mark an item required, or leave an item out of the test. Click Save changes on the item. If autosave is on, the change is saved to this repo and every admin gets it the next time they unlock the test. If autosave is off, it stays on that computer only. The practice page doesn't pick these changes up.
+**Changing the test.** Admin mode also lets you fix a name, add accepted answers, mark an item required, or leave an item out of the test. Click Save changes on the item. If autosave is on, the change is saved to this repo and every admin gets it the next time they unlock the test. If autosave is off, it stays on that computer only. The practice page follows them too: items you leave out stop counting as testable there, and renamed items show the new name.
 
 **Cancelling a test.** If a test has started and you open Admin mode, there's a Cancel this test button at the top. Click it twice to confirm. The test is thrown away without saving anything and the page goes back to the first screen.
 
@@ -57,12 +68,14 @@ If autosave is off or the status line says it couldn't save, click Save encrypte
 
 ## Practice for trainees
 
-Open `practice.html`. There is no passcode, name or SP number. Click a building, street or landmark and type what you think it is.
+Open `practice.html`. It goes straight to the map. There is no passcode, name, SP number or version to pick.
 
-- You see right away whether it's correct. Right answers turn green, wrong ones are marked red and the correct name appears on the map.
+- Click a building, street or landmark and type what you think it is. You see right away whether it's correct. Right answers turn green, wrong ones are red and the correct name shows on the map.
+- The button at the top left switches between **testable items only** (what the real test covers, kept up to date from the test site) and **all items**.
 - **Show the answer** tells you what it is without counting anything against you.
 - Change answer lets you try again on the ones you missed.
-- The word bank works the same as on the test, and you can filter it.
+- The word bank works the same as on the test.
+- Finish practice shows a summary and a report. Practice again starts over.
 - Nothing is saved. Closing the tab clears it.
 
 Practice shows the correct names, so it's not the test. Don't use it to take the test.

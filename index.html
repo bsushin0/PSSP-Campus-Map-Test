@@ -275,7 +275,7 @@ select{font:500 .9rem var(--body); padding:9px 10px}
       <h1>PSSP Campus Map Test</h1>
       <p class="sub">Click a building, street or landmark, then type what it is called. Full names and abbreviations both count.</p>
       <p class="who" id="who" hidden></p>
-      <button type="button" class="lnk" id="hDir">Directions</button> <button type="button" class="lnk" id="hWB">Word bank</button>
+      <button type="button" class="lnk" id="hDir">Directions</button> <button type="button" class="lnk" id="hWB">Word bank</button> <button type="button" class="lnk" id="pracMode" hidden></button>
     </div>
     <div class="stats" role="status" aria-live="polite">
       <div class="stat"><span class="k">Answered</span><span class="v" id="sAns">0<small>/0</small></span></div>
@@ -432,6 +432,7 @@ select{font:500 .9rem var(--body); padding:9px 10px}
       <button type="button" class="btn alt" id="bEnc" hidden>Save encrypted record</button>
       <button type="button" class="btn alt" id="bArv">Admin review</button>
       <button type="button" class="btn alt" id="bNewTaker">New test-taker</button>
+      <button type="button" class="btn" id="bAgain" hidden>Practice again</button>
     </div>
   </div>
 </div>
@@ -573,7 +574,7 @@ const MEM={}; try{localStorage.removeItem('pssp-rec');}catch(e){}
 const lsGet=k=>{if(k==='pssp-rec') return MEM[k]||null; try{return localStorage.getItem(k);}catch(e){return null;}};
 const lsSet=(k,v)=>{if(k==='pssp-rec'){MEM[k]=v;return;} try{localStorage.setItem(k,v);}catch(e){}};
 const parseOV=t=>{try{const o=JSON.parse(t); if(o&&o.items&&typeof o.items==='object') return {at:+o.at||0,items:o.items};}catch(e){} return null;};
-let OV=[DATA.ov?{at:+DATA.ov.at||0,items:DATA.ov.items||{}}:null,parseOV(lsGet('pssp-ov'))].filter(Boolean).sort((a,b)=>b.at-a.at)[0]||{at:0,items:{}};
+let OV=[DATA.ov?{at:+DATA.ov.at||0,items:DATA.ov.items||{}}:null,PRAC?null:parseOV(lsGet('pssp-ov'))].filter(Boolean).sort((a,b)=>b.at-a.at)[0]||{at:0,items:{}};
 const bankName=it=>(it.name||'').replace(/\s*\([^)]*\)/g,'').trim();
 function applyOv(){
   items.forEach(it=>{
@@ -586,6 +587,7 @@ function applyOv(){
   });
 }
 applyOv();
+if(PRAC){ fetch('data/practice-overrides.json',{cache:'no-store'}).then(r=>r.ok?r.text():null).then(t=>{ const o=t&&parseOV(t); if(o&&o.at>=OV.at){ OV=o; applyOv(); paintAll(); stats(); passCheck(); } }).catch(()=>{}); }
 
 const S={sel:null, ans:new Map(), dr:new Map(), rev:false};
 const IDLE_HTML=document.getElementById('pIdle').innerHTML;
@@ -729,8 +731,12 @@ $('#cvDirs').innerHTML=DIRS_HTML; $('#ovDirs').innerHTML=DIRS_HTML;
 $('#hDir').onclick=()=>{ $('#dirsOv').hidden=false; $('#dirsClose').focus(); };
 $('#dirsClose').onclick=()=>{ $('#dirsOv').hidden=true; };
 
-let MODE='initial', SUB=null;
-const isActive=i=>!items[i].ex&&(!SUB||SUB.has(i));
+let MODE='initial', SUB=null, STUDY_ALL=false;
+const isActive=i=>(STUDY_ALL||!items[i].ex)&&(!SUB||SUB.has(i));
+if(PRAC){ const pm=$('#pracMode'); pm.hidden=false;
+  const lab=()=>{ pm.textContent=STUDY_ALL?'Studying: all items (switch to testable only)':'Studying: testable items only (switch to all)'; pm.setAttribute('aria-pressed',STUDY_ALL?'true':'false'); };
+  lab();
+  pm.onclick=()=>{ STUDY_ALL=!STUDY_ALL; lab(); if(S.sel!=null&&!isActive(S.sel)){ const p=S.sel; S.sel=null; paint(p); show('idle'); } paintAll(); stats(); passCheck(); }; }
 const active=()=>items.map((_,i)=>i).filter(isActive);
 const noun=it=>it.lm?'place':(it.kind==='b'?'building':'street');
 function stats(){
@@ -838,7 +844,7 @@ function fillDone(rec){
   const m=summarize(rec), missed=rec.rows.filter(r=>!eff(r)&&r.g!=null), un=m.total-m.ans;
   $('#doneBig').textContent=m.pct+'%';
   $('#doneSub').textContent=`${m.ok} correct, ${missed.length} missed, ${un} not answered, out of ${m.total}.`;
-  $('#doneT').textContent=m.pass?'Test results · PASSED':'Test results';
+  $('#doneT').textContent=PRAC?'Practice results':(m.pass?'Test results · PASSED':'Test results');
   const bad=m.rqBad.map(r=>r.n);
   const bits=[(m.ovr?`Result set by an administrator: ${m.pass?'PASSED':'RETEST'}  ·  `:(m.pass?'PASSED (80%+ and all required correct)  ·  ':''))+`Required ★ ${m.rq.length-m.rqBad.length}/${m.rq.length}`+(m.ovr?'':(!m.pass&&bad.length?` — RETEST needed (${bad.join(', ')})`:(!m.pass?' — RETEST needed (below 80%)':' — all required correct')))];
   if(m.log.length) bits.push(`Adjusted by an administrator (initial score ${m.pct0}%)`);
@@ -906,7 +912,7 @@ $('#cvForm').addEventListener('submit',e=>{
   const n=$('#cvName').value.trim().replace(/\s+/g,' '), sp=$('#cvSp').value.trim();
   if(!n){$('#cvErr').textContent='Enter your full name.'; $('#cvName').focus(); return;}
   if(!sp){$('#cvErr').textContent='Enter your SP number.'; $('#cvSp').focus(); return;}
-  T.name=n; T.sp=sp; T.id=newId(); T.start=Date.now(); T.mode=MODE;
+  T.name=n; T.sp=sp; T.id=newId(); T.start=Date.now(); T.mode=PRAC?'practice':MODE;
   const w=$('#who'); w.textContent=`${n} · SP ${sp}${MODE==='refresher'?' · Refresher':''}`; w.hidden=false;
   S.ans.clear(); S.dr.clear(); S.drAsked=false; drNote(); S.rev=false; endReview(); labels.forEach(t=>t.remove()); labels.clear(); S.sel=null; paintAll(); stats(); show('idle');
   $('#cover').hidden=true; fit();
@@ -917,6 +923,8 @@ function newTaker(){
   $('#done').hidden=true; showCover();
 }
 $('#bNewTaker').onclick=newTaker;
+$('#bAgain').onclick=()=>{ reset(); };
+if(PRAC) $('#bAgain').hidden=false;
 
 /* ---------- records and report ---------- */
 function buildRec(){
@@ -981,11 +989,11 @@ function reportHtml(rec){
   const banner=m.ovr?`<div class="banner ${m.pass?'y':'n'}">${m.pass?'Passed':'Retest'} &middot; admin-set result &middot; ${m.pct}% &middot; calculated result was ${m.calcPass?'pass':'retest'}</div>`:m.pass?`<div class="banner y">Passed &middot; ${m.pct}% &middot; all required items correct</div>`:m.rqBad.length?`<div class="banner n">Retest required &middot; missed required: ${m.rqBad.map(r=>esc(r.n)).join(', ')}</div>`:`<div class="banner n">Retest &middot; ${m.pct}% is below the 80% minimum</div>`;
   return `<article class="rp">
   <div class="rpk">Purdue Student Safety Patrol</div>
-  <h1>${rec.mode==='refresher'?'Refresher Test Record':'Campus Map Test Record'}</h1>
-  <div class="rpk" style="margin-top:6px">${rec.mode==='refresher'?'Refresher test':'Initial test'}</div>
+  <h1>${rec.mode==='practice'?'Campus Map Practice':(rec.mode==='refresher'?'Refresher Test Record':'Campus Map Test Record')}</h1>
+  <div class="rpk" style="margin-top:6px">${rec.mode==='practice'?'Practice session · not graded, not saved':(rec.mode==='refresher'?'Refresher test':'Initial test')}</div>
   <dl class="meta">
-    <div><dt class="rpk">Name</dt><dd>${esc(rec.name)}</dd></div>
-    <div><dt class="rpk">SP number</dt><dd>${esc(rec.sp)}</dd></div>
+    ${rec.mode==='practice'?'':`<div><dt class="rpk">Name</dt><dd>${esc(rec.name)}</dd></div>
+    <div><dt class="rpk">SP number</dt><dd>${esc(rec.sp)}</dd></div>`}
     <div><dt class="rpk">Date</dt><dd>${fmtDate(rec.end)}</dd></div>
     <div><dt class="rpk">Time</dt><dd>${fmtTime(rec.start)} &ndash; ${fmtTime(rec.end)} (${fmtDur(rec.end-rec.start)})</dd></div>
   </dl>
@@ -1086,7 +1094,7 @@ let VK=null, VKOK=false;
 const b64=buf=>{const u=new Uint8Array(buf); let s=''; for(let i=0;i<u.length;i+=8192) s+=String.fromCharCode.apply(null,u.subarray(i,i+8192)); return btoa(s);};
 async function loadVaultKey(){
   if(VK) return VK;
-  const r=await fetch('vault-key.json',{cache:'no-store'}); if(!r.ok) throw new Error('vault-key.json not found');
+  const r=await fetch('data/vault-key.json',{cache:'no-store'}); if(!r.ok) throw new Error('vault-key.json not found');
   const j=await r.json();
   VK=await crypto.subtle.importKey('jwk',j.pub,{name:'RSA-OAEP',hash:'SHA-256'},false,['encrypt']); return VK;
 }
@@ -1148,6 +1156,7 @@ $('#bEnc').onclick=()=>encSave(LAST); $('#arvEnc').onclick=()=>encSave(ARV);
 function vaultNote(){ if(VKOK&&!SP.on) spNote('To keep this result: open the printable report and download it for SharePoint, then save the encrypted record and add it to the repository’s database folder.'); }
 function readRecs(){try{return JSON.parse(lsGet('pssp-rec')||'[]');}catch(e){return [];}}
 function storeRec(rec){
+  if(PRAC) return;
   const a=readRecs().filter(r=>r.id!==rec.id); a.unshift(rec); lsSet('pssp-rec',JSON.stringify(a.slice(0,100)));
   if(DBREF){ DBREF.collection('results').doc(rec.id).set({json:JSON.stringify(rec),at:rec.end,name:rec.name,sp:rec.sp}).catch(()=>{}); }
   if(SP.on) spSave(rec); else if(window.__GH) ghSave(rec); else vaultNote();
@@ -1183,11 +1192,12 @@ let filt={q:'',f:'all'};
 const edited=it=>{const o=OV.items[it.id]; return !!o&&FIELDS.some(k=>o[k]!==undefined);};
 function setMsg(t){$('#admSaved').textContent=t;}
 let saveT=null;
+function pubOv(){ const it={}; Object.keys(OV.items).forEach(k=>{ const o=OV.items[k], c={}; FIELDS.forEach(f=>{ if(o[f]!==undefined) c[f]=o[f]; }); if(Object.keys(c).length) it[k]=c; }); return JSON.stringify({at:OV.at,items:it}); }
 function persist(){
   OV.at=Date.now(); lsSet('pssp-ov',JSON.stringify(OV)); setMsg('Saved on this device.');
   clearTimeout(saveT);
   saveT=setTimeout(async()=>{
-    if(window.__GH&&window.__PW){ try{ await ghPut('overrides.enc.json',await sealOv(),'Update test settings'); setMsg('Saved for everyone. Other admin computers get it the next time they unlock the test.'); }catch(e){ setMsg('Saved on this device only. Could not save to the repository: '+(e&&e.message||e)); } return; }
+    if(window.__GH&&window.__PW){ try{ await ghPut('data/overrides.enc.json',await sealOv(),'Update test settings'); setMsg('Saved for everyone. Other admin computers get it the next time they unlock the test.'); try{ await ghPut('data/practice-overrides.json',pubOv(),'Update practice settings'); }catch(e2){ setMsg('Saved for everyone, but the practice page was not updated: '+(e2&&e2.message||e2)); } }catch(e){ setMsg('Saved on this device only. Could not save to the repository: '+(e&&e.message||e)); } return; }
     if(SP.on){ try{ await SP.put('','config-overrides.json',JSON.stringify(OV)); setMsg('Saved to SharePoint for every admin.'); }catch(e){ setMsg('Saved on this device only. SharePoint save failed: '+(e&&e.message||e)); } return; }
     if(!DBREF) return;
     try{ await DBREF.doc('config/overrides').set({json:JSON.stringify(OV),at:OV.at}); setMsg('Saved for everyone who opens the test.'); }
@@ -1451,7 +1461,7 @@ var _enc=new TextEncoder();
 function _unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
 var $=function(s){return document.querySelector(s);};
 async function open_(pw){
-  var r=await fetch('private.enc.json',{cache:'no-store'}); if(!r.ok) throw new Error('private.enc.json was not found next to this page.');
+  var r=await fetch('data/private.enc.json',{cache:'no-store'}); if(!r.ok) throw new Error('data/private.enc.json was not found.');
   var j=await r.json(); if(j.v!==3) throw new Error('private.enc.json is from an older setup. Make a new one with vault-setup.html.');
   var base=await crypto.subtle.importKey('raw',_enc.encode(pw),'PBKDF2',false,['deriveKey']);
   var key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:_unb64(j.salt),iterations:j.iter},base,{name:'AES-GCM',length:256},false,['decrypt']);
@@ -1468,8 +1478,8 @@ $('#unlF').addEventListener('submit',async function(e){
     window.__ADM=p.admins; window.__PW=pw; window.__GH=(p.gh&&p.gh.token)?p.gh:null; var note=window.__GH?'Autosave is on.':'Autosave is off. Save each result by hand.';
     try{
       var otxt=null, g=window.__GH;
-      if(g){ var ro=await fetch('https://api.github.com/repos/'+g.repo+'/contents/overrides.enc.json?ref='+(g.branch||'main'),{headers:{Authorization:'Bearer '+g.token,Accept:'application/vnd.github.raw+json'},cache:'no-store'}); if(ro.ok) otxt=await ro.text(); }
-      else { var rp=await fetch('overrides.enc.json',{cache:'no-store'}); if(rp.ok) otxt=await rp.text(); }
+      if(g){ var ro=await fetch('https://api.github.com/repos/'+g.repo+'/contents/data/overrides.enc.json?ref='+(g.branch||'main'),{headers:{Authorization:'Bearer '+g.token,Accept:'application/vnd.github.raw+json'},cache:'no-store'}); if(ro.ok) otxt=await ro.text(); }
+      else { var rp=await fetch('data/overrides.enc.json',{cache:'no-store'}); if(rp.ok) otxt=await rp.text(); }
       if(otxt){ var oj=JSON.parse(otxt), obase=await crypto.subtle.importKey('raw',_enc.encode(pw),'PBKDF2',false,['deriveKey']);
         var okey=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:_unb64(oj.salt),iterations:oj.iter},obase,{name:'AES-GCM',length:256},false,['decrypt']);
         var opt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(oj.iv)},okey,_unb64(oj.c)); var ov=JSON.parse(new TextDecoder().decode(opt)); if(ov&&ov.items) DATA.ov=ov; }

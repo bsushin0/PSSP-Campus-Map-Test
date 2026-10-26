@@ -144,11 +144,11 @@ function reportHtml(rec){
   const banner=m.ovr?`<div class="banner ${m.pass?'y':'n'}">${m.pass?'Passed':'Retest'} &middot; admin-set result &middot; ${m.pct}% &middot; calculated result was ${m.calcPass?'pass':'retest'}</div>`:m.pass?`<div class="banner y">Passed &middot; ${m.pct}% &middot; all required items correct</div>`:m.rqBad.length?`<div class="banner n">Retest required &middot; missed required: ${m.rqBad.map(r=>esc(r.n)).join(', ')}</div>`:`<div class="banner n">Retest &middot; ${m.pct}% is below the 80% minimum</div>`;
   return `<article class="rp">
   <div class="rpk">Purdue Student Safety Patrol</div>
-  <h1>${rec.mode==='refresher'?'Refresher Test Record':'Campus Map Test Record'}</h1>
-  <div class="rpk" style="margin-top:6px">${rec.mode==='refresher'?'Refresher test':'Initial test'}</div>
+  <h1>${rec.mode==='practice'?'Campus Map Practice':(rec.mode==='refresher'?'Refresher Test Record':'Campus Map Test Record')}</h1>
+  <div class="rpk" style="margin-top:6px">${rec.mode==='practice'?'Practice session · not graded, not saved':(rec.mode==='refresher'?'Refresher test':'Initial test')}</div>
   <dl class="meta">
-    <div><dt class="rpk">Name</dt><dd>${esc(rec.name)}</dd></div>
-    <div><dt class="rpk">SP number</dt><dd>${esc(rec.sp)}</dd></div>
+    ${rec.mode==='practice'?'':`<div><dt class="rpk">Name</dt><dd>${esc(rec.name)}</dd></div>
+    <div><dt class="rpk">SP number</dt><dd>${esc(rec.sp)}</dd></div>`}
     <div><dt class="rpk">Date</dt><dd>${fmtDate(rec.end)}</dd></div>
     <div><dt class="rpk">Time</dt><dd>${fmtTime(rec.start)} &ndash; ${fmtTime(rec.end)} (${fmtDur(rec.end-rec.start)})</dd></div>
   </dl>
@@ -173,7 +173,7 @@ function reportHtml(rec){
 var DATAREPO='', PRIV=null, RECS=[], CUR=null;
 
 async function unlock(pw){
-  var r=await fetch('vault-key.json',{cache:'no-store'}); if(!r.ok) throw new Error('vault-key.json was not found next to this page.');
+  var r=await fetch('data/vault-key.json',{cache:'no-store'}); if(!r.ok) throw new Error('data/vault-key.json was not found.');
   var j=await r.json(); DATAREPO=j.dataRepo||'';
   if(j.v!==3) throw new Error('This vault is from an older setup. Make a new one with vault-setup.html.');
   var base=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveKey']);
