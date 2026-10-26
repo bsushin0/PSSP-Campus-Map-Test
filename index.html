@@ -157,6 +157,7 @@ textarea{font:500 .9rem/1.35 var(--mono); resize:vertical; min-height:84px}
 select{font:500 .9rem var(--body); padding:9px 10px}
 .lnk{background:none; border:0; padding:6px 2px; color:var(--ink2); font:600 .78rem var(--mono); letter-spacing:.06em; text-transform:uppercase; cursor:pointer; text-decoration:underline; text-underline-offset:3px}
 .lnk:hover{color:var(--ink)}
+a.lnk{display:inline-block}
 .field{display:flex; flex-direction:column; min-width:0}
 .field+.field{margin-top:0}
 .err{color:var(--bad); font-size:.86rem; margin:0}
@@ -266,6 +267,11 @@ select{font:500 .9rem var(--body); padding:9px 10px}
   .fl{grid-template-columns:1fr 120px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important; animation:none!important}}
+.seg{display:inline-flex;align-items:stretch;margin-top:8px;border:2px solid var(--ink);border-radius:999px;overflow:hidden;background:var(--panel)}
+.seg .segk{font:700 .7rem ui-monospace,Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;padding:7px 10px;color:var(--ink2);border-right:1px solid var(--line);display:flex;align-items:center}
+.seg button{font:700 .85rem system-ui,sans-serif;padding:7px 14px;border:0;background:transparent;color:var(--ink);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--gold);color:var(--goldink)}
+.seg button:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
 [hidden]{display:none!important}
 </style>
 
@@ -275,7 +281,8 @@ select{font:500 .9rem var(--body); padding:9px 10px}
       <h1>PSSP Campus Map Test</h1>
       <p class="sub">Click a building, street or landmark, then type what it is called. Full names and abbreviations both count.</p>
       <p class="who" id="who" hidden></p>
-      <button type="button" class="lnk" id="hDir">Directions</button> <button type="button" class="lnk" id="hWB">Word bank</button> <button type="button" class="lnk" id="pracMode" hidden></button>
+      <button type="button" class="lnk" id="hDir">Directions</button> <button type="button" class="lnk" id="hWB">Word bank</button> <a class="lnk" id="hGoTest" href="./" hidden>Go to the test</a>
+      <div class="seg" id="pracMode" role="group" aria-label="What to study" hidden><span class="segk">Study</span><button type="button" data-all="0" aria-pressed="true">Testable only</button><button type="button" data-all="1" aria-pressed="false">All items</button></div>
     </div>
     <div class="stats" role="status" aria-live="polite">
       <div class="stat"><span class="k">Answered</span><span class="v" id="sAns">0<small>/0</small></span></div>
@@ -454,7 +461,7 @@ select{font:500 .9rem var(--body); padding:9px 10px}
       <button type="submit" class="btn" id="cvStart">Start the test</button>
     </form>
     <div class="dirs" id="cvDirs"></div>
-    <div><button type="button" class="lnk" id="cvAdmin">Admin mode</button></div>
+    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Admin mode</button></div>
   </div>
 </div>
 
@@ -733,10 +740,10 @@ $('#dirsClose').onclick=()=>{ $('#dirsOv').hidden=true; };
 
 let MODE='initial', SUB=null, STUDY_ALL=false;
 const isActive=i=>(STUDY_ALL||!items[i].ex)&&(!SUB||SUB.has(i));
-if(PRAC){ const pm=$('#pracMode'); pm.hidden=false;
-  const lab=()=>{ pm.textContent=STUDY_ALL?'Studying: all items (switch to testable only)':'Studying: testable items only (switch to all)'; pm.setAttribute('aria-pressed',STUDY_ALL?'true':'false'); };
-  lab();
-  pm.onclick=()=>{ STUDY_ALL=!STUDY_ALL; lab(); if(S.sel!=null&&!isActive(S.sel)){ const p=S.sel; S.sel=null; paint(p); show('idle'); } paintAll(); stats(); passCheck(); }; }
+if(PRAC){ const pm=$('#pracMode'); pm.hidden=false; $('#hGoTest').hidden=false;
+  pm.addEventListener('click',e=>{ const b=e.target.closest('button[data-all]'); if(!b) return; const all=b.dataset.all==='1'; if(all===STUDY_ALL) return; STUDY_ALL=all;
+    pm.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',(x.dataset.all==='1')===STUDY_ALL?'true':'false'));
+    if(S.sel!=null&&!isActive(S.sel)){ const p=S.sel; S.sel=null; paint(p); show('idle'); } paintAll(); stats(); passCheck(); }); }
 const active=()=>items.map((_,i)=>i).filter(isActive);
 const noun=it=>it.lm?'place':(it.kind==='b'?'building':'street');
 function stats(){
@@ -1452,6 +1459,7 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 <p>An administrator unlocks the test before it starts. Enter the admin passcode.</p>
 <div><label for="unlP">Admin passcode</label><input type="password" id="unlP" autocomplete="current-password"></div>
 <button type="submit" id="unlB">Unlock</button>
+<p class="r"><a href="practice.html" style="color:inherit">Practice version</a></p>
 <p class="m" id="unlM" role="status"></p>
 </form>
 </div>
