@@ -172,7 +172,7 @@ function reportHtml(rec){
   <div class="rpfoot"><span>Record ${esc(rec.id)}</span><span>Generated ${fmtDate(Date.now())} ${fmtTime(Date.now())}</span></div>
 </article>`;
 }
-var PRIV=null, RECS=[], CUR=null;
+var DATAREPO='', PRIV=null, RECS=[], CUR=null;
 
 var _enc=new TextEncoder();
 function _unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
@@ -193,7 +193,7 @@ async function deriveKey(pw,salt,iter,kf,usage){
 
 async function unlock(pw,kf){
   var r=await fetch('vault-key.json',{cache:'no-store'}); if(!r.ok) throw new Error('vault-key.json was not found next to this page.');
-  var j=await r.json();
+  var j=await r.json(); DATAREPO=j.dataRepo||'';
   if(j.v!==2) throw new Error('This vault was made by an older setup page. Run the new vault-setup.html.');
   var key=await deriveKey(pw,unb64(j.salt),j.iter,kf,['decrypt']);
   var pk; try{ pk=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(j.iv)},key,unb64(j.wrapped)); }catch(e){ throw new Error('Wrong password or wrong key file.'); }
@@ -259,7 +259,7 @@ $('#lf').addEventListener('submit',async function(e){
     var kf=await getKeyfile($('#kf').files[0],$('#rem').checked);
     await unlock($('#pw').value,kf); $('#pw').value=''; $('#lock').hidden=true; $('#app').hidden=false;
     var saved=''; try{ saved=localStorage.getItem('pssp-vault-repo')||''; }catch(x){}
-    $('#repo').value=saved||guessRepo(); if($('#repo').value) fromRepo(); else render();
+    $('#repo').value=saved||DATAREPO||guessRepo(); if($('#repo').value) fromRepo(); else render();
   }catch(err){ m.className='msg bad'; m.textContent=err&&err.message||String(err); }
   $('#ub').disabled=false;
 });
