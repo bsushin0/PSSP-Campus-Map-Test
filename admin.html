@@ -288,6 +288,7 @@ a.lnk{display:inline-block}
 .mtrow .btn{padding:4px 8px;font-size:.78rem}
 .mtgone{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid var(--line);font-size:.88rem}
 .prev{fill:rgba(224,168,30,.45);stroke:var(--gold);stroke-width:2;stroke-dasharray:4 3;pointer-events:none}
+.prev.dr{fill-opacity:.25;stroke-dasharray:none}.dh{fill:var(--bg);stroke:var(--ink);pointer-events:none}.dh.f{fill:var(--gold)}.dm{fill:var(--gold);stroke:var(--ink);opacity:.75;pointer-events:none}body.drawing #map{cursor:crosshair}.mtdr{grid-column:1/-1;border:1px dashed var(--gold);padding:6px 8px;font-size:.82rem;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.mtdr .h{flex:1 1 100%}.mtrow select{font:inherit;padding:3px 4px}
 .prevl{font:700 11px var(--mono);fill:var(--ink);paint-order:stroke;stroke:var(--bg);stroke-width:3px;pointer-events:none}
 body.placing #map{cursor:crosshair}
 [hidden]{display:none!important}
@@ -626,7 +627,7 @@ let OV=[DATA.ov?nzOV(DATA.ov):null,PRAC?null:parseOV(lsGet('pssp-ov'))].filter(B
 /* buildings added or removed through the admin page */
 { const bid=b=>'b|'+(b.a||'')+'|'+b.n, rm=new Set(OV.rm||[]);
   if(rm.size) DATA.b=DATA.b.filter(b=>!rm.has(bid(b)));
-  (OV.add||[]).forEach(a=>{ if(rm.has(a.id)||DATA.b.some(b=>bid(b)===a.id)) return; DATA.b.push({i:a.id,a:a.code,n:a.name,ad:a.sub||'',d:a.d,c:a.c,w:a.w,k:a.keys||[],sm:0,rq:a.rq?1:0,lm:0}); }); }
+  (OV.add||[]).forEach(a=>{ if(rm.has(a.id)||DATA.b.some(b=>bid(b)===a.id)) return; DATA.b.push({i:a.id,a:a.code,n:a.name,ad:a.sub||'',d:a.d,c:a.c,w:a.w,k:a.keys||[],sm:0,rq:a.rq?1:0,lm:a.lm?1:0,rg:a.rg?1:0}); }); }
 const items=[];
 DATA.b.forEach(b=>items.push({kind:'b',name:b.n,code:b.a,sub:b.ad,keys:b.k,rq:b.rq,lm:b.lm,rg:b.rg,c:b.c,w:b.w,d:b.d,ang:0,label:b.a}));
 DATA.s.forEach(s=>items.push({kind:'s',name:s.n,code:s.lb,sub:s.ad,keys:s.k,rq:s.rq,lm:s.lm,c:s.c,w:s.w,d:s.d,dd:s.dd||'',lp:s.lp||s.d,ang:s.ang,wd:s.wd,label:s.lb}));
@@ -682,6 +683,7 @@ function applyView(){
   labels.forEach((t,i)=>{const it=items[i]; t.style.fontSize=(11*sc)+'px'; t.style.strokeWidth=(3.5*sc)+'px'; t.style.display=(it.w/sc>it.label.length*(it.kind==='s'?6.6:7)+8)?'':'none';});
   const nice=[10,20,50,100,200,250,500,1000]; let len=nice[0]; for(const n of nice){ if(n/sc<=130) len=n; }
   $('#scale').innerHTML=`<i style="width:${len/sc}px"></i>${len} m`;
+  if(window.__drRedraw) window.__drRedraw();
 }
 function fit(){
   const r=rect(); const [x0,y0,x1,y1]=DATA.view; const bw=x1-x0, bh=y1-y0, pad=1.02;
@@ -1289,7 +1291,7 @@ function fillEd(i){
   $('#edHead').textContent=(it.kind==='s'?'Street':(it.lm?'Landmark':'Building'))+' · '+it.name;
   $('#edName').value=it.name; $('#edLabel').value=it.label||''; $('#edSub').value=it.sub||''; $('#edKeys').value=it.keys.join('\n');
   $('#edRq').checked=!!it.rq; $('#edEx').checked=!!it.ex; $('#edNote').value=o.note||''; $('#edTest').value=''; $('#edTestR').textContent=''; $('#edTestR').className='tres';
-  setSts(o.v||''); $('#edRemove').hidden=!(ADMPAGE&&it.kind==='b'&&!it.lm);
+  setSts(o.v||''); $('#edRemove').hidden=!(ADMPAGE&&it.kind==='b');
 }
 function setSts(v){document.querySelectorAll('.sts button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));}
 function admSelect(i,fromList){
@@ -1521,7 +1523,7 @@ async function footprintAt(lon,lat){
 function squareAt(lon,lat){ const [x,y]=toM(lon,lat), h=12; return [[x-h,y-h],[x+h,y-h],[x+h,y+h],[x-h,y+h]]; }
 const llRing=r=>r.map(p=>toM(p[0],p[1]));
 function polyOf(m){ const xs=m.map(p=>p[0]), ys=m.map(p=>p[1]), r1=v=>Math.round(v*10)/10;
-  return {d:'M'+m.map(p=>r1(p[0])+' '+r1(p[1])).join(' ')+'Z',c:[r1((Math.min(...xs)+Math.max(...xs))/2),r1((Math.min(...ys)+Math.max(...ys))/2)],w:r1(Math.max(Math.max(...xs)-Math.min(...xs),8))}; }
+  return {pts:m.map(p=>[r1(p[0]),r1(p[1])]),d:'M'+m.map(p=>r1(p[0])+' '+r1(p[1])).join(' ')+'Z',c:[r1((Math.min(...xs)+Math.max(...xs))/2),r1((Math.min(...ys)+Math.max(...ys))/2)],w:r1(Math.max(Math.max(...xs)-Math.min(...xs),8))}; }
 async function mtFind(r){
   r.st='Looking for it…'; r.busy=true; mtRender();
   try{
@@ -1539,14 +1541,18 @@ async function mtFind(r){
 }
 function mtPreview(){
   const g=$('#gPrev'); g.innerHTML='';
-  MT.rows.forEach(r=>{ if(!r.poly||!r.inc) return; g.append(el('path',{d:r.poly.d,class:'prev'})); const t=el('text',{x:r.poly.c[0],y:r.poly.c[1],class:'prevl','text-anchor':'middle'}); t.textContent=r.abbr||initials(r.name); t.style.fontSize=(11*view.w/rect().width)+'px'; t.style.strokeWidth=(3*view.w/rect().width)+'px'; g.append(t); });
+  MT.rows.forEach(r=>{ if(DR&&DR.r===r) return; if(!r.poly||!r.inc) return; g.append(el('path',{d:r.poly.d,class:'prev'})); const t=el('text',{x:r.poly.c[0],y:r.poly.c[1],class:'prevl','text-anchor':'middle'}); t.textContent=r.abbr||initials(r.name); t.style.fontSize=(11*view.w/rect().width)+'px'; t.style.strokeWidth=(3*view.w/rect().width)+'px'; g.append(t); });
+  if(DR){ const sc=view.w/rect().width, P=DR.pts, n=P.length;
+    if(n>=2) g.append(el('path',{d:'M'+P.map(p=>p[0]+' '+p[1]).join('L')+(n>=3&&!DR.add?'Z':''),class:'prev dr',style:'fill-opacity:'+(n>=3&&!DR.add?'.25':'0')}));
+    if(n>=3) for(let i=0;i<n;i++){ if(DR.add&&i===n-1) continue; const a=P[i], b=P[(i+1)%n]; g.append(el('circle',{cx:(a[0]+b[0])/2,cy:(a[1]+b[1])/2,r:4*sc,class:'dm'})); }
+    P.forEach((p,i)=>{ const c=el('circle',{cx:p[0],cy:p[1],r:5.5*sc,class:'dh'+(i===0?' f':'')}); c.style.strokeWidth=(1.6*sc)+'px'; g.append(c); }); }
 }
 function mtShow(r){ if(!r.poly) return; view.w=Math.min(view.w,420); view.h=view.w*rect().height/rect().width; view.x=r.poly.c[0]-view.w/2; view.y=r.poly.c[1]-view.h/2; applyView(); mtPreview(); }
-function mtReset(){ MT.rows=[]; MT.gone=[]; MT.armed=null; $('#mtOut').hidden=true; $('#mtMsg').textContent=''; $('#gPrev').innerHTML=''; document.body.classList.remove('placing'); }
+function mtReset(){ DR=null; document.body.classList.remove('drawing'); MT.rows=[]; MT.gone=[]; MT.armed=null; $('#mtOut').hidden=true; $('#mtMsg').textContent=''; $('#gPrev').innerHTML=''; document.body.classList.remove('placing'); }
 function mtRender(){
   const nr=MT.rows;
   $('#mtNewH').textContent=nr.length?`${nr.length} not in the test yet`:'';
-  $('#mtNew').innerHTML=nr.length?nr.map((r,k)=>`<div class="mtrow" data-k="${k}"><label class="chk"><input type="checkbox" data-f="inc" ${r.inc?'checked':''} ${r.poly?'':'disabled'}> Add</label><input type="text" data-f="abbr" value="${esc(r.abbr||'')}" placeholder="Abbr" aria-label="Abbreviation"><input type="text" data-f="name" value="${esc(r.name)}" aria-label="Name"><div class="wide"><input type="text" data-f="addr" value="${esc(r.addr||'')}" placeholder="Address, used to find it" aria-label="Address"><button type="button" class="btn alt" data-a="find" ${r.busy?'disabled':''}>Find</button><button type="button" class="btn alt" data-a="place">${MT.armed===r?'Click the map…':'Place on map'}</button><button type="button" class="btn alt" data-a="show" ${r.poly?'':'disabled'}>Show</button><button type="button" class="btn alt" data-a="drop">Drop</button></div><div class="wide st">${esc(r.st||'Not located yet. Click Find.')}</div></div>`).join(''):'<p class="muted">Every building on the new list is already in the test.</p>';
+  $('#mtNew').innerHTML=nr.length?nr.map((r,k)=>`<div class="mtrow" data-k="${k}"><label class="chk"><input type="checkbox" data-f="inc" ${r.inc?'checked':''} ${r.poly?'':'disabled'}> Add</label><input type="text" data-f="abbr" value="${esc(r.abbr||'')}" placeholder="Abbr" aria-label="Abbreviation"><input type="text" data-f="name" value="${esc(r.name)}" aria-label="Name"><div class="wide"><select data-f="type" aria-label="Kind of item"><option value="building"${(r.type||'building')==='building'?' selected':''}>Building</option><option value="landmark"${r.type==='landmark'?' selected':''}>Landmark</option><option value="area"${r.type==='area'?' selected':''}>Area</option></select><input type="text" data-f="addr" value="${esc(r.addr||'')}" placeholder="Address, used to find it" aria-label="Address"><button type="button" class="btn alt" data-a="find" ${r.busy?'disabled':''}>Find</button><button type="button" class="btn alt" data-a="place">${MT.armed===r?'Click the map…':'Place on map'}</button><button type="button" class="btn alt" data-a="draw">Draw outline</button><button type="button" class="btn alt" data-a="edit" ${r.poly&&r.poly.pts?'':'disabled'}>Adjust outline</button><button type="button" class="btn alt" data-a="show" ${r.poly?'':'disabled'}>Show</button><button type="button" class="btn alt" data-a="drop">Drop</button></div><div class="wide st">${esc(r.st||'Not located yet. Click Find.')}</div>${DR&&DR.r===r?'<div class="mtdr"><div class="h" id="drHint"></div><button type="button" class="btn" data-a="ddone">Done</button><button type="button" class="btn alt" data-a="dundo">Undo last corner</button><button type="button" class="btn alt" data-a="dfin">Finish shape</button><button type="button" class="btn alt" data-a="dcancel">Cancel</button></div>':''}</div>`).join(''):'<p class="muted">Every building on the new list is already in the test.</p>';
   const gn=MT.gone;
   $('#mtGoneH').textContent=gn.length?`${gn.length} in the test but not matched on the new list`:'';
   $('#mtGone').innerHTML=gn.length?gn.map((g,k)=>`<label class="mtgone"><input type="checkbox" data-g="${k}" ${g.on?'checked':''}><span><b>${esc(g.it.code||'')}</b> ${esc(g.it.name)}<br><span class="muted">${esc(g.it.sub||'')}</span></span></label>`).join(''):'';
@@ -1561,7 +1567,7 @@ async function mtCompare(){
     if(!list.length){ m.textContent='No buildings found in that file. Paste the list as text, one building per line.'; return; }
     const hit=new Set(), fresh=[];
     list.forEach(e=>{ const it=matchEntry(e); if(it) hit.add(it); else fresh.push(e); });
-    MT.rows=fresh.map(e=>({name:e.name,abbr:e.abbr||'',addr:e.addr||'',inc:false,poly:null,st:''}));
+    MT.rows=fresh.map(e=>({type:'building',name:e.name,abbr:e.abbr||'',addr:e.addr||'',inc:false,poly:null,st:''}));
     MT.gone=bldItems().filter(it=>!hit.has(it)).map(it=>({it,on:false}));
     $('#mtOut').hidden=false; $('#mtApplyMsg').textContent='';
     m.textContent=`Read ${list.length} buildings from the list. ${hit.size} matched buildings already in the test, ${fresh.length} look new, ${MT.gone.length} in the test were not matched. A list of names only can miss renamed buildings, so check each row before you apply.`;
@@ -1570,7 +1576,7 @@ async function mtCompare(){
   }catch(e){ m.textContent='Could not read that file: '+(e&&e.message||e); }
 }
 $('#mtGo').onclick=mtCompare;
-$('#mtAdd').onclick=()=>{ $('#mtOut').hidden=false; MT.rows.unshift({name:'',abbr:'',addr:'',inc:false,poly:null,st:'Type the name and address, then click Find.'}); mtRender(); const i=$('#mtNew input[data-f=name]'); if(i) i.focus(); };
+$('#mtAdd').onclick=()=>{ $('#mtOut').hidden=false; MT.rows.unshift({type:'building',name:'',abbr:'',addr:'',inc:false,poly:null,st:'Type the name and address, then click Find.'}); mtRender(); const i=$('#mtNew input[data-f=name]'); if(i) i.focus(); };
 $('#mtNew').addEventListener('input',e=>{ const row=e.target.closest('[data-k]'); if(!row||!e.target.dataset.f) return; const r=MT.rows[+row.dataset.k], f=e.target.dataset.f;
   if(f==='inc'){ r.inc=e.target.checked; mtPreview(); } else r[f]=e.target.value; });
 $('#mtNew').addEventListener('click',e=>{
@@ -1579,7 +1585,53 @@ $('#mtNew').addEventListener('click',e=>{
   else if(a==='show') mtShow(r);
   else if(a==='drop'){ MT.rows.splice(+row.dataset.k,1); if(MT.armed===r){ MT.armed=null; document.body.classList.remove('placing'); } mtRender(); }
   else if(a==='place'){ MT.armed=MT.armed===r?null:r; document.body.classList.toggle('placing',!!MT.armed); mtRender(); }
+  else if(a==='draw') drStart(r,true);
+  else if(a==='edit') drStart(r,false);
+  else if(a==='ddone') drStop(true);
+  else if(a==='dcancel') drStop(false);
+  else if(a==='dundo'&&DR){ DR.pts.pop(); if(DR.pts.length<3) DR.add=true; drDraw(); }
+  else if(a==='dfin'&&DR){ DR.add=false; drDraw(); }
 });
+/* ----- mark the outline by hand: click corners one by one, drag a corner to move it, drag a gold dot to add one, double-click a corner to remove it ----- */
+let DR=null;
+const drPt=e=>{ const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const q=pt.matrixTransform(svg.getScreenCTM().inverse()); return [Math.round(q.x*10)/10,Math.round(q.y*10)/10]; };
+function drHint(){ const h=$('#drHint'); if(!h||!DR) return; const n=DR.pts.length;
+  h.textContent=DR.add?(n<3?`Zoom in, then click each corner of the outline in order (${n} so far, at least 3). Drag the map to move around.`:`${n} corners. Keep clicking to add more, or click Finish shape (or the first corner) to close it.`):`${n} corners. Drag a corner to move it, drag a gold dot to add a corner, double-click a corner to remove it. Click Done when it matches.`; }
+function drDraw(){ mtPreview(); drHint(); }
+function drStart(r,fresh){
+  MT.armed=null; document.body.classList.remove('placing');
+  const have=r.poly&&r.poly.pts;
+  DR={r,pts:(fresh||!have)?[]:r.poly.pts.map(p=>p.slice()),add:fresh||!have,down:null};
+  document.body.classList.add('drawing'); if(have&&!fresh) mtShow(r);
+  mtRender(); drDraw();
+}
+function drStop(commit){
+  if(!DR) return; const r=DR.r;
+  if(commit){ if(DR.pts.length<3){ $('#drHint').textContent='An outline needs at least 3 corners.'; return; }
+    r.poly=polyOf(DR.pts); r.poly.src='outline marked by hand'; r.inc=true; r.st='Outline marked by hand ('+DR.pts.length+' corners).'; }
+  DR=null; document.body.classList.remove('drawing'); mtRender();
+}
+window.__drRedraw=()=>{ if(DR) mtPreview(); };
+function drHit(q){ const sc=view.w/rect().width; return DR.pts.findIndex(p=>Math.hypot(p[0]-q[0],p[1]-q[1])<=10*sc); }
+svg.addEventListener('pointerdown',e=>{
+  if(!DR||e.button>0) return; DR.down=null; const q=drPt(e), sc=view.w/rect().width; let vi=drHit(q);
+  if(vi<0&&DR.pts.length>=3){ const n=DR.pts.length; for(let i=0;i<n;i++){ const a=DR.pts[i], b=DR.pts[(i+1)%n], m=[(a[0]+b[0])/2,(a[1]+b[1])/2]; if(Math.hypot(m[0]-q[0],m[1]-q[1])<=9*sc){ DR.pts.splice(i+1,0,[Math.round(m[0]*10)/10,Math.round(m[1]*10)/10]); vi=i+1; break; } } }
+  if(vi>=0){ e.stopPropagation(); e.preventDefault(); try{ svg.setPointerCapture(e.pointerId); }catch(x){} DR.down={vi,x:e.clientX,y:e.clientY,moved:false}; drDraw(); }
+},true);
+svg.addEventListener('pointermove',e=>{
+  if(!DR||!DR.down) return; e.stopPropagation(); const d=DR.down;
+  if(Math.hypot(e.clientX-d.x,e.clientY-d.y)>3) d.moved=true;
+  if(d.moved){ DR.pts[d.vi]=drPt(e); drDraw(); }
+},true);
+svg.addEventListener('pointerup',e=>{
+  if(!DR) return;
+  if(DR.down){ const d=DR.down; DR.down=null; e.stopPropagation(); if(!d.moved&&DR.add&&d.vi===0&&DR.pts.length>=3) DR.add=false; drDraw(); return; }
+  const pan=moved>6; ptrs.delete(e.pointerId); svg.classList.remove('drag'); pinch=null; e.stopPropagation();
+  if(pan||e.button>0||!DR.add) return;
+  DR.pts.push(drPt(e)); drDraw();
+},true);
+svg.addEventListener('dblclick',e=>{ if(!DR) return; e.stopPropagation(); const vi=drHit(drPt(e)); if(vi>=0&&DR.pts.length>3){ DR.pts.splice(vi,1); drDraw(); } },true);
+svg.addEventListener('click',e=>{ if(DR) e.stopPropagation(); },true);
 $('#mtGone').addEventListener('input',e=>{ const k=e.target.dataset.g; if(k!==undefined) MT.gone[+k].on=e.target.checked; });
 /* clicking the map places the armed building */
 let plDown=null;
@@ -1617,7 +1669,7 @@ $('#mtApply').onclick=async()=>{
   adds.forEach(r=>{ const nm=r.name.trim().replace(/\s+/g,' '), ab=(r.abbr||initials(nm)).trim().toUpperCase(), id='b|'+ab+'|'+nm;
     if(items.some(i=>baseId(i)===id)||OV.add.some(x=>x.id===id)){ skipped++; return; }
     OV.rm=OV.rm.filter(x=>x!==id);
-    OV.add.push({id,code:ab,name:nm,sub:(r.addr||'West Lafayette, IN').trim(),keys:keysFor(nm,ab),rq:false,d:r.poly.d,c:r.poly.c,w:r.poly.w,src:r.poly.src||''}); a++; });
+    OV.add.push({id,code:ab,name:nm,sub:(r.addr||'West Lafayette, IN').trim(),keys:keysFor(nm,ab),rq:false,lm:(r.type&&r.type!=='building')?1:0,rg:r.type==='area'?1:0,d:r.poly.d,c:r.poly.c,w:r.poly.w,src:r.poly.src||''}); a++; });
   gone.forEach(g=>dropBuilding(g.it));
   persist(); m.textContent='Saving…';
   await structuralSaved(m,`Added ${a}${skipped?` (${skipped} already existed)`:''}, removed ${gone.length}.`);
@@ -1715,7 +1767,7 @@ $('#bArv').onclick=()=>{ if(!LAST) LAST=buildRec(); openGate(()=>openArv(LAST),'
 
 /* ---------- shared store and downloads (optional) ---------- */
 async function boot(){
-  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&!window.__AP) $('#gatePw').value=window.__PW; setTimeout(()=>$('#gateName').focus(),60); }
+  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&(!window.__AP||window.__ADMONLY)){ $('#gatePw').value=window.__PW; if(window.__ADMONLY){ $('#gatePw').closest('.field').hidden=true; $('#gateSub').textContent='Enter your full name and your SP number. Your name and SP number are recorded with every change you make.'; } } setTimeout(()=>$('#gateName').focus(),60); }
   else showCover();
   try{ if(window.crypto&&crypto.subtle&&/^https?:/.test(location.protocol)){ await loadVaultKey(); VKOK=true; } }catch(e){}
   if(VKOK||window.__GH){ $('#bEnc').hidden=false; $('#arvEnc').hidden=false; }
@@ -1749,8 +1801,8 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 <div id="unl" role="dialog" aria-modal="true" aria-labelledby="unlT">
 <form id="unlF" autocomplete="off">
 <h1 id="unlT">PSSP Campus Map Admin</h1>
-<p>Test setup for administrators. Enter the test passcode first; the admin passcode comes next.</p>
-<div><label for="unlP">Test passcode</label><input type="password" id="unlP" autocomplete="current-password"></div>
+<p>Test setup for administrators. Enter the admin passcode.</p>
+<div><label for="unlP">Admin passcode</label><input type="password" id="unlP" autocomplete="current-password"></div>
 <button type="submit" id="unlB">Unlock</button>
 <p class="r"><a href="./" style="color:inherit">Back to the test</a></p>
 <p class="m" id="unlM" role="status"></p>
@@ -1758,15 +1810,27 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 </div>
 <script>
 (function(){
-var _enc=new TextEncoder();
+var _enc=new TextEncoder();window.__ADMONLY=1;
 function _unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
 var $=function(s){return document.querySelector(s);};
+async function _kek(pw,salt,iter,use){
+  var base=await crypto.subtle.importKey('raw',_enc.encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:salt,iterations:iter},base,{name:'AES-GCM',length:256},false,use);
+}
 async function open_(pw){
   var r=await fetch('data/private.enc.json',{cache:'no-store'}); if(!r.ok) throw new Error('data/private.enc.json was not found.');
-  var j=await r.json(); if(j.v!==3) throw new Error('private.enc.json is from an older setup. Make a new one with vault-setup.html.');
-  var base=await crypto.subtle.importKey('raw',_enc.encode(pw),'PBKDF2',false,['deriveKey']);
-  var key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:_unb64(j.salt),iterations:j.iter},base,{name:'AES-GCM',length:256},false,['decrypt']);
-  var pt; try{ pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(j.iv)},key,_unb64(j.c)); }catch(e){ throw new Error('Wrong passcode.'); }
+  var j=await r.json(), pt; window.__USED=pw;
+  if(j.v===3){
+    try{ pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(j.iv)},await _kek(pw,_unb64(j.salt),j.iter,['decrypt']),_unb64(j.c)); }catch(e){ throw new Error('Wrong passcode.'); }
+  } else if(j.v===4){
+    var dk=null, names=window.__ADMONLY?['a']:['t','a'];
+    for(var n=0;n<names.length&&!dk;n++){
+      var w=j.wk[names[n]], p1=names[n]==='a'?pw.trim():pw; if(!w) continue;
+      try{ dk=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(w.iv)},await _kek(p1,_unb64(w.salt),w.iter,['decrypt']),_unb64(w.c)); window.__USED=p1; }catch(e){}
+    }
+    if(!dk) throw new Error(window.__ADMONLY?'Wrong admin passcode.':'Wrong passcode.');
+    pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(j.iv)},await crypto.subtle.importKey('raw',dk,'AES-GCM',false,['decrypt']),_unb64(j.c));
+  } else throw new Error('private.enc.json is from an older setup. Make a new one with vault-setup.html.');
   return JSON.parse(new TextDecoder().decode(pt));
 }
 $('#unlF').addEventListener('submit',async function(e){
@@ -1774,7 +1838,7 @@ $('#unlF').addEventListener('submit',async function(e){
   try{
     if(!(window.crypto&&crypto.subtle)) throw new Error('Use Edge or Chrome over https.');
     var pw=$('#unlP').value;
-    var p=await open_(pw);
+    var p=await open_(pw); pw=window.__USED||pw;
     p.b.forEach(function(x,i){Object.assign(DATA.b[i],x);}); p.s.forEach(function(x,i){Object.assign(DATA.s[i],x);}); if(p.ov) DATA.ov=p.ov;
     window.__ADM=p.admins; window.__PW=pw; window.__AP=p.ap||null; window.__OVK=p.ovk||null; window.__GH=(p.gh&&p.gh.token)?p.gh:null; var note=window.__GH?'Autosave is on.':'Autosave is off. Save each result by hand.';
     try{
