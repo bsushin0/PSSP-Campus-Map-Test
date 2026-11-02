@@ -13,12 +13,13 @@ To get to practice from the test site, click **Practice version** on the unlock 
 ```
 index.html        the test
 practice.html     the practice page for trainees
+admin.html        test setup: items, answers, new buildings, settings
 vault.html        where admins read saved results
 data/             encrypted settings the pages load (test data, vault lock, shared edits, practice list)
 database/         encrypted test results, one file per test
 ```
 
-The three pages are the only things you open. Everything else is loaded by them, so you shouldn't need to touch `data` or `database` by hand.
+The four pages are the only things you open. Everything else is loaded by them, so you shouldn't need to touch `data` or `database` by hand.
 
 There are three ways to use it:
 
@@ -26,7 +27,7 @@ There are three ways to use it:
 - The **test** has two versions:
 
   - **Initial** is for new SPs. It covers every building, street and landmark and takes about 30 minutes.
-  - **Refresher** is the yearly check. It covers about 40% of the items, picked at random, and takes 10 to 15 minutes. Every required item is always included.
+  - **Refresher** is the yearly check. It covers about 40% of the items (an admin can change that on the admin page), picked at random, and takes 10 to 15 minutes. Every required item is always included.
 
 To pass you need at least 80% of the items you were tested on, and every required item (marked with a star) has to be right. Miss a required item and it's a retest no matter what your percentage is.
 
@@ -52,7 +53,7 @@ Spelling doesn't need to be perfect, and common nicknames and abbreviations are 
 
 Still do this every time: click Printable report, then Download report, and save the file in the SharePoint Database/Reports folder.
 
-If autosave is off or the status line says it couldn't save, click Save encrypted record and upload that file to the `database` folder by hand (Add file, Upload files, Commit). Results only exist in the open tab until they're saved, so don't close it on an error.
+If the status line says it couldn't save, click Save to database to try again. It saves straight to the `database` folder and nothing downloads to your computer. Only if autosave is off does the button download a file, and then you upload it to the `database` folder by hand (Add file, Upload files, Commit). Results only exist in the open tab until they're saved, so don't close it on an error.
 
 **Reviewing and changing a result.** Use Admin review. You'll need the passcode and your own SP number. Every admin SP number is checked, and your name goes on any change you make.
 
@@ -60,9 +61,14 @@ If autosave is off or the status line says it couldn't save, click Save encrypte
 - To change the overall grade, use the Change grade button next to the grade.
 - Approving saves the change to the repo automatically. It uses the same file name as the original, so it replaces the old copy.
 
-**Changing the test.** Admin mode also lets you fix a name, add accepted answers, mark an item required, or leave an item out of the test. Click Save changes on the item. If autosave is on, the change is saved to this repo and every admin gets it the next time they unlock the test. If autosave is off, it stays on that computer only. The practice page follows them too: items you leave out stop counting as testable there, and renamed items show the new name.
+**Cancelling a test.** If a test has started and you open Admin mode on the test page, you get a Cancel this test button and the Test records list. Click Cancel twice to confirm. The test is thrown away without saving anything and the page goes back to the first screen. Admin mode on the test page is only for what happens during and after a test.
 
-**Cancelling a test.** If a test has started and you open Admin mode, there's a Cancel this test button at the top. Click it twice to confirm. The test is thrown away without saving anything and the page goes back to the first screen.
+**Test setup (admin page).** Everything that changes the test itself is on `admin.html`. Open it from the Test setup link on the test page's first screen. It asks for the admin passcode, then your name and SP number. If autosave is on, every change is saved to this repo and every admin gets it the next time they unlock the test. The practice page follows the changes too. If autosave is off, changes stay on that computer only.
+
+- **Items.** Click one on the map or in the list. You can fix its name, label or address, add accepted answers, mark it required, or leave it out of the test. Try an answer lets you check what would count.
+- **Update buildings from a new campus map.** Choose the new map's building list (a PDF, CSV, JSON or text file) or paste it. Compare reads it and checks it against the buildings already in the test. Buildings that are new get looked up through the state address records and the state building footprints, with OpenStreetMap as a backup, and the outline shows on the map. Fix the abbreviation or address and click Find, or click Place on map and then the building. Buildings in the test that aren't on the new list show up as possibly removed. Tick the ones to take out. Nothing changes until you click Apply changes. After applying, reload the page to see the new map. A list of names only can miss renamed buildings, so check each row first.
+- **Remove a building.** Pick it, then use Remove this building from the map.
+- **Test settings.** The size of the refresher test and the list of admin SP numbers. The pass mark stays at 80% plus every required item.
 
 **Refresher reports** are short on purpose. They show the grade and the items the SP missed. Initial reports show everything.
 

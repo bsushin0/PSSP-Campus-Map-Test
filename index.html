@@ -272,6 +272,24 @@ a.lnk{display:inline-block}
 .seg button{font:700 .85rem system-ui,sans-serif;padding:7px 14px;border:0;background:transparent;color:var(--ink);cursor:pointer}
 .seg button[aria-pressed=true]{background:var(--gold);color:var(--goldink)}
 .seg button:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
+.adm-only,.adm-lite{display:none}
+#admPanel.full .adm-only{display:flex}
+#admPanel.lite .adm-lite{display:block}
+#admPanel.lite #admProg,#admPanel.lite .legend,#admPanel.lite>.hint,#admPanel.lite #admEd,#admPanel.lite .fl,#admPanel.lite #admList,#admPanel.lite #admExp,#admPanel.lite #admImp,#admPanel.lite #admReset{display:none!important}
+#admPanel.full #admCancel,#admPanel.full #admRecs{display:none!important}
+.tool{border:1px solid var(--bldline);background:var(--bg);padding:12px;flex-direction:column;gap:10px}
+.tool h3{margin:0;font:700 1.05rem/1.1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.tool h4{margin:6px 0 2px;font:700 .8rem var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.tool input[type=text],.tool input[type=number]{font:inherit;padding:6px 8px;border:1.5px solid var(--bldline);background:var(--panel);color:var(--ink);min-width:0}
+.mtrow{display:grid;grid-template-columns:auto 64px 1fr;gap:6px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.mtrow .wide{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.mtrow .wide input{flex:1 1 160px}
+.mtrow .st{font-size:.8rem;color:var(--ink2)}
+.mtrow .btn{padding:4px 8px;font-size:.78rem}
+.mtgone{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid var(--line);font-size:.88rem}
+.prev{fill:rgba(224,168,30,.45);stroke:var(--gold);stroke-width:2;stroke-dasharray:4 3;pointer-events:none}
+.prevl{font:700 11px var(--mono);fill:var(--ink);paint-order:stroke;stroke:var(--bg);stroke-width:3px;pointer-events:none}
+body.placing #map{cursor:crosshair}
 [hidden]{display:none!important}
 </style>
 
@@ -309,6 +327,7 @@ a.lnk{display:inline-block}
         <path id="bound" class="bound"/>
         <g id="gB"></g>
         <g id="gL"></g>
+        <g id="gPrev"></g>
       </svg>
       <div class="north"><b></b>N</div>
       <div class="zoom">
@@ -368,9 +387,10 @@ a.lnk{display:inline-block}
 
     <aside class="panel adm" id="admPanel" hidden aria-label="Admin review">
       <div class="top">
-        <div><h2>Admin review</h2><p class="muted" id="admSum" style="margin-top:4px"></p></div>
+        <div><h2 id="admH">Admin review</h2><p class="muted" id="admSum" style="margin-top:4px"></p></div>
         <div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" class="btn alt" id="admCancel" hidden>Cancel this test</button><button type="button" class="btn alt" id="admExit">Exit admin</button></div>
       </div>
+      <p class="adm-lite muted" id="admLiteNote">Test setup (names, answers, new buildings, settings) is on the <a href="admin.html">admin page</a>. This screen is for cancelling a test and for test records.</p>
       <div class="prog" id="admProg" aria-hidden="true"><i class="p1"></i><i class="p2"></i></div>
       <div class="legend"><span><i class="dot ok"></i>Accurate</span><span><i class="dot bad"></i>Not accurate</span><span><i class="dot"></i>Not reviewed</span><span>&#9733; required &middot; &#9998; edited &middot; &#8856; left out of test</span></div>
       <p class="hint">Click an item on the map or in the list. Every item is labeled on the map while you review.</p>
@@ -397,6 +417,7 @@ a.lnk{display:inline-block}
           <button type="button" class="btn" id="edSave">Save changes</button>
           <button type="button" class="btn alt" id="edRevert">Undo my edits</button>
           <button type="button" class="btn alt" id="edNext">Next unreviewed</button>
+          <button type="button" class="btn alt adm-rm" id="edRemove" hidden>Remove this building from the map</button>
         </div>
       </section>
 
@@ -417,6 +438,27 @@ a.lnk{display:inline-block}
         <input type="file" id="admFile" accept=".json,application/json" hidden>
       </div>
       <p class="saved" id="admSaved" role="status"></p>
+      <section class="tool adm-only" id="admMap">
+        <h3>Update buildings from a new campus map</h3>
+        <p class="hint">Choose the new map&rsquo;s building list (PDF, CSV, JSON or a text file) or paste it. The tool compares it with the buildings in the test, finds the new ones from the state address and building-footprint records, and lists buildings that are no longer on the map. Nothing changes until you click Apply.</p>
+        <div class="row"><input type="file" id="mtFile" accept=".pdf,.csv,.tsv,.txt,.json"><button type="button" class="btn" id="mtGo">Compare</button><button type="button" class="btn alt" id="mtAdd">Add one by hand</button></div>
+        <textarea id="mtTxt" spellcheck="false" placeholder="Or paste the list here, one building per line. ABBR, Name, Address works best. A map index (Name 55) works too."></textarea>
+        <p class="muted" id="mtMsg" role="status"></p>
+        <div id="mtOut" hidden>
+          <h4 id="mtNewH"></h4><div id="mtNew"></div>
+          <h4 id="mtGoneH"></h4><div id="mtGone"></div>
+          <div class="row"><button type="button" class="btn" id="mtApply">Apply changes</button><span class="muted" id="mtApplyMsg" role="status"></span></div>
+        </div>
+        <div class="row"><button type="button" class="btn" id="admReload" hidden>Reload to see the changes</button></div>
+      </section>
+      <section class="tool adm-only" id="admCfg">
+        <h3>Test settings</h3>
+        <div class="field"><label class="f" for="cfgRef">Refresher test size (percent of the full test)</label><input type="number" id="cfgRef" min="5" max="100" step="1"></div>
+        <div class="field"><label class="f" for="cfgAdm">Admin SP numbers (separated by commas)</label><input type="text" id="cfgAdm" autocomplete="off"></div>
+        <p class="hint">The pass mark stays at 80% of the items tested plus every required item. Required items and items left out are set on each item above.</p>
+        <div class="row"><button type="button" class="btn" id="cfgSave">Save settings</button><button type="button" class="btn alt" id="cfgReset">Back to defaults</button></div>
+        <p class="muted" id="cfgMsg" role="status"></p>
+      </section>
     </aside>
   </main>
 </div>
@@ -450,7 +492,7 @@ a.lnk{display:inline-block}
     <h1 id="cvT">Campus Map Test</h1>
     <div id="cvPick" class="vpick" role="group" aria-label="Choose the test version">
       <button type="button" class="vopt" data-mode="initial"><em>New SPs</em><b>Initial test</b><span>Every building, landmark and street in the patrol area. Takes up to about 30 minutes.</span></button>
-      <button type="button" class="vopt" data-mode="refresher"><em>Yearly update</em><b>Refresher test</b><span>All required &#9733; items, a random selection of the other buildings and streets, about 40% of the full test. Takes about 10 to 15 minutes.</span></button>
+      <button type="button" class="vopt" data-mode="refresher"><em>Yearly update</em><b>Refresher test</b><span>All required &#9733; items, a random selection of the other buildings and streets, about <span id="refPct">40</span>% of the full test. Takes about 10 to 15 minutes.</span></button>
     </div>
     <div class="vbar" id="cvVer" hidden><span><b id="cvVerName"></b></span><button type="button" class="lnk" id="cvVerChg">Change version</button></div>
     <div class="facts" id="cvFacts" hidden></div>
@@ -461,7 +503,7 @@ a.lnk{display:inline-block}
       <button type="submit" class="btn" id="cvStart">Start the test</button>
     </form>
     <div class="dirs" id="cvDirs"></div>
-    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Admin mode</button></div>
+    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="admin.html">Test setup</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Admin mode</button></div>
   </div>
 </div>
 
@@ -564,6 +606,7 @@ const DATA={"view":[-1872.7,-1365.1,1837.0,1481.2],"bound":"","ctx":"M1176.5 -72
 window.__start=function(){
 'use strict';
 const PRAC=false;
+const ADMPAGE=false;
 const NS='http://www.w3.org/2000/svg';
 const $=s=>document.querySelector(s);
 const svg=$('#map'), gCtx=$('#gCtx'), gA=$('#gA'), gR=$('#gR'), gB=$('#gB'), gL=$('#gL');
@@ -573,15 +616,21 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const el=(n,a)=>{const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); return e;};
 
 /* One list holds both kinds: buildings first, then streets. */
+const MEM={}; try{localStorage.removeItem('pssp-rec');}catch(e){}
+const lsGet=k=>{if(k==='pssp-rec') return MEM[k]||null; try{return localStorage.getItem(k);}catch(e){return null;}};
+const lsSet=(k,v)=>{if(k==='pssp-rec'){MEM[k]=v;return;} try{localStorage.setItem(k,v);}catch(e){}};
+const nzOV=o=>({at:+o.at||0,items:o.items||{},add:Array.isArray(o.add)?o.add:[],rm:Array.isArray(o.rm)?o.rm:[],cfg:(o.cfg&&typeof o.cfg==='object')?o.cfg:{}});
+const parseOV=t=>{try{const o=JSON.parse(t); if(o&&o.items&&typeof o.items==='object') return nzOV(o);}catch(e){} return null;};
+let OV=[DATA.ov?nzOV(DATA.ov):null,PRAC?null:parseOV(lsGet('pssp-ov'))].filter(Boolean).sort((a,b)=>b.at-a.at)[0]||nzOV({});
+
+/* buildings added or removed through the admin page */
+{ const bid=b=>'b|'+(b.a||'')+'|'+b.n, rm=new Set(OV.rm||[]);
+  if(rm.size) DATA.b=DATA.b.filter(b=>!rm.has(bid(b)));
+  (OV.add||[]).forEach(a=>{ if(rm.has(a.id)||DATA.b.some(b=>bid(b)===a.id)) return; DATA.b.push({i:a.id,a:a.code,n:a.name,ad:a.sub||'',d:a.d,c:a.c,w:a.w,k:a.keys||[],sm:0,rq:a.rq?1:0,lm:0}); }); }
 const items=[];
 DATA.b.forEach(b=>items.push({kind:'b',name:b.n,code:b.a,sub:b.ad,keys:b.k,rq:b.rq,lm:b.lm,rg:b.rg,c:b.c,w:b.w,d:b.d,ang:0,label:b.a}));
 DATA.s.forEach(s=>items.push({kind:'s',name:s.n,code:s.lb,sub:s.ad,keys:s.k,rq:s.rq,lm:s.lm,c:s.c,w:s.w,d:s.d,dd:s.dd||'',lp:s.lp||s.d,ang:s.ang,wd:s.wd,label:s.lb}));
 {const seen=new Set(); items.forEach((it,i)=>{let id=it.kind+'|'+(it.code||'')+'|'+it.name; if(seen.has(id)) id+='#'+i; seen.add(id); it.id=id; it.base={name:it.name,code:it.code,sub:it.sub,keys:it.keys.slice(),rq:!!it.rq};});}
-const MEM={}; try{localStorage.removeItem('pssp-rec');}catch(e){}
-const lsGet=k=>{if(k==='pssp-rec') return MEM[k]||null; try{return localStorage.getItem(k);}catch(e){return null;}};
-const lsSet=(k,v)=>{if(k==='pssp-rec'){MEM[k]=v;return;} try{localStorage.setItem(k,v);}catch(e){}};
-const parseOV=t=>{try{const o=JSON.parse(t); if(o&&o.items&&typeof o.items==='object') return {at:+o.at||0,items:o.items};}catch(e){} return null;};
-let OV=[DATA.ov?{at:+DATA.ov.at||0,items:DATA.ov.items||{}}:null,PRAC?null:parseOV(lsGet('pssp-ov'))].filter(Boolean).sort((a,b)=>b.at-a.at)[0]||{at:0,items:{}};
 const bankName=it=>(it.name||'').replace(/\s*\([^)]*\)/g,'').trim();
 function applyOv(){
   items.forEach(it=>{
@@ -594,7 +643,7 @@ function applyOv(){
   });
 }
 applyOv();
-if(PRAC){ fetch('data/practice-overrides.json',{cache:'no-store'}).then(r=>r.ok?r.text():null).then(t=>{ const o=t&&parseOV(t); if(o&&o.at>=OV.at){ OV=o; applyOv(); paintAll(); stats(); passCheck(); } }).catch(()=>{}); }
+{ const rp=document.getElementById('refPct'); if(rp) rp.textContent=Math.round(((OV.cfg&&OV.cfg.ref>=0.05&&OV.cfg.ref<=1)?OV.cfg.ref:0.40)*100); }
 
 const S={sel:null, ans:new Map(), dr:new Map(), rev:false};
 const IDLE_HTML=document.getElementById('pIdle').innerHTML;
@@ -890,11 +939,12 @@ const fmtTime=t=>new Date(t).toLocaleTimeString(undefined,{hour:'numeric',minute
 const fmtDur=ms=>{const m=Math.max(1,Math.round(ms/60000)); return m>=60?Math.floor(m/60)+' h '+(m%60)+' min':m+' min';};
 
 /* ---------- cover ---------- */
-const REF_SHARE=0.40;
+const refShare=()=>(OV.cfg&&OV.cfg.ref>=0.05&&OV.cfg.ref<=1)?OV.cfg.ref:0.40;
+const adminList=()=>(OV.cfg&&Array.isArray(OV.cfg.admins)&&OV.cfg.admins.length)?OV.cfg.admins.map(Number):[...ADMIN_SPS];
 function pickRefresher(){
   const base=items.map((_,i)=>i).filter(i=>!items[i].ex), must=base.filter(i=>items[i].rq);
   const pool=base.filter(i=>!items[i].rq);
-  const want=Math.max(0,Math.min(pool.length,Math.round(REF_SHARE*base.length)-must.length));
+  const want=Math.max(0,Math.min(pool.length,Math.round(refShare()*base.length)-must.length));
   for(let k=pool.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1)); [pool[k],pool[j]]=[pool[j],pool[k]];}
   return new Set(must.concat(pool.slice(0,want)));
 }
@@ -1123,6 +1173,7 @@ async function saveText(name,text,type){
 }
 async function encSave(rec){
   if(!rec) return;
+  if(window.__GH){ await ghSave(rec); return; }
   try{ const [t,n]=await Promise.all([encRecord(rec),encName(rec)]); await saveText(n,t,'application/json'); spNote('Saved '+n+'. Add it to the database folder in the repository.'); }
   catch(e){ spNote('Could not encrypt the record: '+(e&&e.message||e)); }
 }
@@ -1148,7 +1199,7 @@ function ghSave(rec){
       const [txt,n]=await Promise.all([encRecord(rec),encName(rec)]);
       await ghPut('database/'+n,txt,'Save result '+n.slice(0,8));
       spNote('Saved to the repository database folder ('+n+').');
-    }catch(e){ spNote('Could not save to the repository: '+(e&&e.message||e)+'. Use Save encrypted record and upload the file by hand.'); }
+    }catch(e){ spNote('Could not save to the repository: '+(e&&e.message||e)+'. Click Save to database to try again.'); }
   });
   return GHQ;
 }
@@ -1199,18 +1250,20 @@ let filt={q:'',f:'all'};
 const edited=it=>{const o=OV.items[it.id]; return !!o&&FIELDS.some(k=>o[k]!==undefined);};
 function setMsg(t){$('#admSaved').textContent=t;}
 let saveT=null;
-function pubOv(){ const it={}; Object.keys(OV.items).forEach(k=>{ const o=OV.items[k], c={}; FIELDS.forEach(f=>{ if(o[f]!==undefined) c[f]=o[f]; }); if(Object.keys(c).length) it[k]=c; }); return JSON.stringify({at:OV.at,items:it}); }
+function pubOv(){ const it={}; Object.keys(OV.items).forEach(k=>{ const o=OV.items[k], c={}; FIELDS.forEach(f=>{ if(o[f]!==undefined) c[f]=o[f]; }); if(Object.keys(c).length) it[k]=c; }); return JSON.stringify({at:OV.at,items:it,add:OV.add||[],rm:OV.rm||[]}); }
 function persist(){
   OV.at=Date.now(); lsSet('pssp-ov',JSON.stringify(OV)); setMsg('Saved on this device.');
   clearTimeout(saveT);
-  saveT=setTimeout(async()=>{
+  saveT=setTimeout(saveShared,500);
+}
+async function saveShared(){
     if(window.__GH&&window.__PW){ try{ await ghPut('data/overrides.enc.json',await sealOv(),'Update test settings'); setMsg('Saved for everyone. Other admin computers get it the next time they unlock the test.'); try{ await ghPut('data/practice-overrides.json',pubOv(),'Update practice settings'); }catch(e2){ setMsg('Saved for everyone, but the practice page was not updated: '+(e2&&e2.message||e2)); } }catch(e){ setMsg('Saved on this device only. Could not save to the repository: '+(e&&e.message||e)); } return; }
     if(SP.on){ try{ await SP.put('','config-overrides.json',JSON.stringify(OV)); setMsg('Saved to SharePoint for every admin.'); }catch(e){ setMsg('Saved on this device only. SharePoint save failed: '+(e&&e.message||e)); } return; }
     if(!DBREF) return;
     try{ await DBREF.doc('config/overrides').set({json:JSON.stringify(OV),at:OV.at}); setMsg('Saved for everyone who opens the test.'); }
     catch(e){ setMsg('Saved on this device only. The shared store needs Editor access to accept changes.'); }
-  },500);
 }
+function flushShared(){ clearTimeout(saveT); return saveShared(); }
 function relabel(){labels.forEach((t,i)=>{const x=t.querySelector('textPath')||t; x.textContent=items[i].label;});}
 function afterEdit(){applyOv(); relabel(); coverFacts(); stats(); paintAll(); admRender();}
 function isHit(it,q){return !q||(it.name+' '+it.label+' '+(it.sub||'')+' '+it.keys.join(' ')).toLowerCase().includes(q);}
@@ -1236,7 +1289,7 @@ function fillEd(i){
   $('#edHead').textContent=(it.kind==='s'?'Street':(it.lm?'Landmark':'Building'))+' · '+it.name;
   $('#edName').value=it.name; $('#edLabel').value=it.label||''; $('#edSub').value=it.sub||''; $('#edKeys').value=it.keys.join('\n');
   $('#edRq').checked=!!it.rq; $('#edEx').checked=!!it.ex; $('#edNote').value=o.note||''; $('#edTest').value=''; $('#edTestR').textContent=''; $('#edTestR').className='tres';
-  setSts(o.v||'');
+  setSts(o.v||''); $('#edRemove').hidden=!(ADMPAGE&&it.kind==='b'&&!it.lm);
 }
 function setSts(v){document.querySelectorAll('.sts button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));}
 function admSelect(i,fromList){
@@ -1286,7 +1339,7 @@ $('#edTest').addEventListener('input',e=>{
   const y=matches(tmp,t); r.textContent=y?'Would count as correct':'Would be marked wrong'; r.className='tres '+(y?'y':'n');
 });
 /* export / import */
-function exportText(){return JSON.stringify({app:'purdue-campus-map-test',at:OV.at,items:OV.items},null,1);}
+function exportText(){return JSON.stringify({app:'purdue-campus-map-test',at:OV.at,items:OV.items,add:OV.add||[],rm:OV.rm||[],cfg:OV.cfg||{}},null,1);}
 $('#admExp').onclick=async()=>{
   const t=exportText(); let ok=false;
   if(DL){ try{await DL.save({filename:'campus-map-test-edits.json',data:t}); ok=true; setMsg('Edits file saved.');}catch(e){ if(e&&e.code==='declined') return; } }
@@ -1300,22 +1353,28 @@ function importText(t){
 }
 $('#admReset').onclick=function(){
   if(this.dataset.arm!=='1'){ this.dataset.arm='1'; this.textContent='Click again to clear'; setTimeout(()=>{this.dataset.arm='0'; this.textContent='Clear all edits';},3500); return; }
-  this.dataset.arm='0'; this.textContent='Clear all edits'; OV={at:0,items:{}}; persist(); afterEdit(); $('#admEd').hidden=true; setMsg('All edits cleared. '+$('#admSaved').textContent);
+  this.dataset.arm='0'; this.textContent='Clear all edits'; OV=nzOV({add:OV.add,rm:OV.rm,cfg:OV.cfg}); persist(); afterEdit(); $('#admEd').hidden=true; setMsg('All edits cleared. '+$('#admSaved').textContent);
 };
 $('#admRecs').onclick=openRecs;
 function enterAdmin(){
+  const pnl=$('#admPanel'); pnl.classList.toggle('full',ADMPAGE); pnl.classList.toggle('lite',!ADMPAGE); $('#admH').textContent=ADMPAGE?'Test setup':'Admin';
+  if(!ADMPAGE){
+    $('#cover').hidden=true; $('#gate').hidden=true; $('#done').hidden=true; $('#report').hidden=true; $('#panel').hidden=true; pnl.hidden=false; S.sel=null;
+    $('#admSum').textContent=T.start&&!S.rev?'A test is in progress.':'No test is running.'; setMsg('');
+    const ac=$('#admCancel'); ac.hidden=!(T.start&&!S.rev); ac.textContent='Cancel this test'; ac.dataset.armed=''; return;
+  }
   ADM=true; $('#cover').hidden=true; $('#gate').hidden=true; $('#done').hidden=true; $('#report').hidden=true;
   $('#panel').hidden=true; $('#admPanel').hidden=false; $('#admEd').hidden=true; S.sel=null;
   labels.forEach(t=>t.remove()); labels.clear(); paintAll(); admRender(); fit();
   setMsg(window.__GH?'Edits are saved for everyone (autosave is on).':(DBREF?'Edits are shared with everyone who opens the test.':'Edits are kept on this device only. Autosave is off, so other admins will not see them.'));
-  const ac=$('#admCancel'); ac.hidden=!(T.start&&!S.rev); ac.textContent='Cancel this test'; ac.dataset.armed='';
+  cfgFill(); mtReset();
 }
 function exitAdmin(){
   ADM=false; $('#admPanel').hidden=true; $('#panel').hidden=false; S.sel=null;
   labels.forEach(t=>t.remove()); labels.clear(); show('idle'); paintAll(); stats(); fit();
   if(!T.start) showCover();
 }
-$('#admExit').onclick=exitAdmin;
+$('#admExit').onclick=()=>{ if(ADMPAGE){ location.href='./'; return; } exitAdmin(); };
 let cancelT=null;
 $('#admCancel').onclick=()=>{
   const b=$('#admCancel');
@@ -1337,11 +1396,242 @@ $('#gateForm').addEventListener('submit',async e=>{
   const nm=$('#gateName').value.trim().replace(/\s+/g,' ');
   if(nm.split(' ').filter(Boolean).length<2){ err('Enter your full name (first and last).'); $('#gateName').focus(); return; }
   const n=parseSp($('#gateSp').value);
-  if(n==null||!ADMIN_SPS.has(n)){ err('That SP number is not authorized for admin access.'); $('#gateSp').focus(); return; }
+  if(n==null||!adminList().includes(n)){ err('That SP number is not authorized for admin access.'); $('#gateSp').focus(); return; }
   ADMID={name:nm,sp:String(n)}; $('#gate').hidden=true; const f=GATE_NEXT; GATE_NEXT=null; f&&f();
 });
-$('#gateCancel').onclick=()=>{$('#gate').hidden=true;};
+$('#gateCancel').onclick=()=>{ if(ADMPAGE&&!ADM){ location.href='./'; return; } $('#gate').hidden=true; };
 $('#cvAdmin').onclick=()=>openGate(enterAdmin,'Admin mode'); $('#bAdmin').onclick=()=>openGate(enterAdmin,'Admin mode');
+
+/* ---------- admin page: test settings and building updates ---------- */
+const LON0=-86.9250, LAT0=40.4290;
+const toM=(lon,lat)=>[(lon-LON0)*84500,-(lat-LAT0)*111000];
+const toLL=(x,y)=>[x/84500+LON0,LAT0-y/111000];
+function cfgFill(){
+  $('#cfgRef').value=Math.round(refShare()*100); $('#cfgAdm').value=adminList().join(', '); $('#cfgMsg').textContent='';
+}
+$('#cfgSave').onclick=()=>{
+  const m=$('#cfgMsg'), ref=parseFloat($('#cfgRef').value);
+  if(!(ref>=5&&ref<=100)){ m.textContent='Refresher size must be between 5 and 100 percent.'; return; }
+  const ad=[...new Set($('#cfgAdm').value.split(/[\s,;]+/).filter(Boolean).map(parseSp))];
+  if(!ad.length||ad.some(n=>n==null)){ m.textContent='Enter admin SP numbers separated by commas, for example 1, 2, 11.'; return; }
+  if(ADMID&&!ad.includes(+ADMID.sp)){ m.textContent='Keep your own SP number in the list so you are not locked out.'; return; }
+  OV.cfg=Object.assign({},OV.cfg,{ref:ref/100,admins:ad}); persist(); afterEdit();
+  m.textContent='Saved. '+$('#admSaved').textContent;
+};
+$('#cfgReset').onclick=()=>{ const c=Object.assign({},OV.cfg); delete c.ref; delete c.admins; OV.cfg=c; persist(); afterEdit(); cfgFill(); $('#cfgMsg').textContent='Back to the defaults. '+$('#admSaved').textContent; };
+
+/* ----- compare a new map list with the buildings in the test ----- */
+const MT={rows:[],gone:[],armed:null,n:0};
+const STOPW=new Set(['buildings','garages','parking','hall','building','center','centre','the','of','and','laboratory','lab','house','at','for','purdue','university','memorial']);
+const toks=s=>norm(s).split(' ').filter(w=>w&&!STOPW.has(w));
+const bldItems=()=>items.filter(it=>it.kind==='b'&&!it.lm);
+function matchEntry(e){
+  const n=norm(e.name), sq=squash(n), ab=(e.abbr||'').toUpperCase(), B=bldItems();
+  let hit=B.find(it=>(ab&&it.code&&String(it.code).toUpperCase()===ab)||it._k.has(n)||it._k.has(sq)); if(hit) return hit;
+  const t=toks(e.name); if(!t.length) return null;
+  const c=B.filter(it=>{ const a=new Set(toks(it.name)); it.keys.forEach(k=>toks(k).forEach(w=>a.add(w))); return t.every(w=>a.has(w)); });
+  if(c.length===1) return c[0];
+  const c2=B.filter(it=>{ const bt=toks(bankName(it)); return bt.length&&bt.every(w=>t.includes(w)); });
+  return c2.length===1?c2[0]:null;
+}
+function splitCsv(line,d){ const out=[]; let cur='',q=false; for(const ch of line){ if(ch==='"') q=!q; else if(ch===d&&!q){ out.push(cur); cur=''; } else cur+=ch; } out.push(cur); return out.map(x=>x.trim()); }
+const initials=n=>n.replace(/\([^)]*\)/g,' ').split(/[\s\-]+/).filter(w=>/^[A-Za-z]/.test(w)&&!STOPW.has(w.toLowerCase())).map(w=>w[0]).join('').toUpperCase().slice(0,4)||'NEW';
+function parseList(t){
+  t=String(t||'').trim(); if(!t) return [];
+  if(t[0]==='['||t[0]==='{'){
+    try{ const j=JSON.parse(t), a=Array.isArray(j)?j:(j.buildings||j.b||[]);
+      return a.map(x=>({name:String(x.name||x.n||'').trim(),abbr:String(x.abbr||x.code||x.a||'').trim().toUpperCase(),addr:[x.street||x.address||x.ad,x.city,x.zip&&String(x.zip).slice(0,5)].filter(Boolean).join(', ')})).filter(x=>x.name&&!/^\d+$/.test(x.abbr||'x')); }catch(e){}
+  }
+  const lines=t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean), d=lines[0].includes('\t')?'\t':(lines[0].includes(',')?',':null);
+  if(d&&/name|building/i.test(lines[0])&&/abbr|code|address|street/i.test(lines[0])){
+    const h=splitCsv(lines[0],d).map(x=>x.toLowerCase()), ix=re=>h.findIndex(x=>re.test(x));
+    const iN=ix(/name|building/), iA=ix(/abbr|code/), iS=ix(/street|address/), iC=ix(/city/), iZ=ix(/zip|postal/);
+    return lines.slice(1).map(l=>{ const c=splitCsv(l,d); return {name:(c[iN]||'').trim(),abbr:(iA>=0?c[iA]||'':'').trim().toUpperCase(),addr:[iS>=0&&c[iS],iC>=0&&c[iC],iZ>=0&&c[iZ]&&c[iZ].slice(0,5)].filter(Boolean).join(', ')}; }).filter(x=>x.name);
+  }
+  const out=[];
+  lines.forEach(raw=>{
+    let l=raw.replace(/^[*†‡\s]+/,''), m, abbr='', addr='', name=l;
+    const parts=d?splitCsv(l,d):null;
+    if(parts&&parts.length>=2&&/^[A-Z0-9][A-Z0-9-]{1,7}$/.test(parts[0])&&/[A-Za-z]{3}/.test(parts[1])){ abbr=parts[0]; name=parts[1]; addr=parts.slice(2).join(', '); }
+    else if((m=l.match(/^([A-Z0-9][A-Z0-9-]{1,7})(?:\t|\s{2,})(.+)$/))&&/[A-Za-z]{3}/.test(m[2])){ abbr=m[1]; name=m[2]; }
+    name=name.replace(/^(Buildings|Landmarks|Streets|Parking Garages)\s+/,'').replace(/\s+\d{1,3}[A-Za-z]?$/,'').replace(/\s+/g,' ').trim();
+    if(!abbr&&(m=name.match(/\(([A-Z0-9]{2,8})\)\s*$/))) abbr=m[1];
+    if(name.length<3||name.length>70||/note:/i.test(name)||!/[A-Za-z]{3}/.test(name)) return;
+    out.push({name,abbr,addr});
+  });
+  const seen=new Set(); return out.filter(x=>{ const k=norm(x.name); if(seen.has(k)) return false; seen.add(k); return true; });
+}
+/* ----- PDF text (pdf.js from cdnjs, loaded only when a PDF is chosen) ----- */
+async function loadPdfJs(){
+  if(window.pdfjsLib) return;
+  await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; s.onload=res; s.onerror=()=>rej(new Error('Could not load the PDF reader. Paste the list as text instead.')); document.head.append(s); });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+async function pdfLines(file){
+  await loadPdfJs();
+  const pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise, lines=[];
+  for(let pn=1;pn<=pdf.numPages;pn++){
+    const tc=await (await pdf.getPage(pn)).getTextContent();
+    const its=tc.items.filter(i=>i.str&&i.str.trim()).map(i=>({s:i.str,x:i.transform[4],y:Math.round(i.transform[5]),w:i.width||0}));
+    const rows=[]; its.sort((a,b)=>b.y-a.y||a.x-b.x).forEach(i=>{ const r=rows.find(r=>Math.abs(r.y-i.y)<=2); if(r) r.it.push(i); else rows.push({y:i.y,it:[i]}); });
+    const pend={}, lastIdx={};
+    rows.sort((a,b)=>b.y-a.y).forEach(r=>{
+      r.it.sort((a,b)=>a.x-b.x); const segs=[];
+      r.it.forEach(i=>{ const l=segs[segs.length-1]; if(l&&i.x-l.end<=10){ l.s+=(/\s$/.test(l.s)||/^\s/.test(i.s)?'':' ')+i.s; l.end=i.x+i.w; } else segs.push({s:i.s,x:i.x,end:i.x+i.w}); });
+      for(let k=segs.length-1;k>0;k--){ if(/^\d{1,3}[A-Za-z]?$/.test(segs[k].s.trim())&&!/\s\d{1,3}[A-Za-z]?$/.test(segs[k-1].s.trim())){ segs[k-1].s+=' '+segs[k].s.trim(); segs.splice(k,1); } }
+      segs.forEach(sg=>{
+        const xb=Math.round(sg.x/6), txt=sg.s.replace(/\s+/g,' ').trim(), num=/\s\d{1,3}[A-Za-z]?$/.test(txt);
+        Object.keys(pend).forEach(k=>{ if(pend[k].y-r.y>22) delete pend[k]; });
+        if(/^\d{1,3}[A-Za-z]?$/.test(txt)){ const k=Object.keys(pend).sort((a,b)=>Math.abs(a-xb)-Math.abs(b-xb))[0]; if(k!==undefined&&Math.abs(k-xb)<=3){ lines.push(pend[k].t+' '+txt); lastIdx[k]=lines.length-1; delete pend[k]; } }
+        else if(txt[0]==='('){ const k=Object.keys(lastIdx).sort((a,b)=>Math.abs(a-xb)-Math.abs(b-xb))[0]; if(k!==undefined&&Math.abs(k-xb)<=3) lines[lastIdx[k]]=lines[lastIdx[k]].replace(/\s+(\d{1,3}[A-Za-z]?)$/,' '+txt+' $1'); }
+        else if(num){ const p=pend[xb]; lines.push((p?p.t+' ':'')+txt); delete pend[xb]; lastIdx[xb]=lines.length-1; }
+        else { const p=pend[xb]; pend[xb]={t:(p?p.t+' ':'')+txt,y:r.y}; }
+      });
+    });
+  }
+  return lines.join('\n');
+}
+/* ----- locating a building: state geocoder, OpenStreetMap, state building footprints ----- */
+const GEO='https://gisdata.in.gov/server/rest/services/Geocode/State_Geocoder_WGS84/GeocodeServer/findAddressCandidates';
+const FPS='https://gisdata.in.gov/server/rest/services/Hosted/Building_Footprints/FeatureServer/0/query';
+async function getJson(url){ const c=new AbortController(), t=setTimeout(()=>c.abort(),20000); try{ const r=await fetch(url,{signal:c.signal}); if(!r.ok) throw new Error('service answered '+r.status); return await r.json(); } finally{ clearTimeout(t); } }
+async function geoAddr(addr){
+  const j=await getJson(GEO+'?'+new URLSearchParams({SingleLine:addr,outSR:'4326',maxLocations:'1',f:'json'})), c=(j.candidates||[])[0];
+  return c&&c.score>=70?{lon:c.location.x,lat:c.location.y}:null;
+}
+async function geoName(name){
+  const j=await getJson('https://nominatim.openstreetmap.org/search?'+new URLSearchParams({q:name.replace(/\([^)]*\)/g,'')+', Purdue University, West Lafayette, Indiana',format:'json',limit:'1',polygon_geojson:'1',viewbox:'-86.95,40.445,-86.90,40.41',bounded:'1'})), o=j[0];
+  if(!o) return null;
+  let ring=null; const g=o.geojson; if(g&&g.type==='Polygon') ring=g.coordinates[0]; else if(g&&g.type==='MultiPolygon') ring=g.coordinates[0][0];
+  return {lon:+o.lon,lat:+o.lat,ring};
+}
+function ringArea(r){ let a=0; for(let i=0;i<r.length;i++){ const [x1,y1]=r[i],[x2,y2]=r[(i+1)%r.length]; a+=x1*y2-x2*y1; } return Math.abs(a/2); }
+const ringMid=r=>{ const xs=r.map(p=>p[0]), ys=r.map(p=>p[1]); return [(Math.min(...xs)+Math.max(...xs))/2,(Math.min(...ys)+Math.max(...ys))/2]; };
+async function footprintAt(lon,lat){
+  const base={inSR:'4326',outSR:'4326',outFields:'objectid',returnGeometry:'true',f:'json'};
+  let j=await getJson(FPS+'?'+new URLSearchParams(Object.assign({geometry:lon+','+lat,geometryType:'esriGeometryPoint',spatialRel:'esriSpatialRelIntersects'},base)));
+  let fs=(j.features||[]).filter(f=>f.geometry&&f.geometry.rings);
+  if(!fs.length){
+    const e=0.00025; j=await getJson(FPS+'?'+new URLSearchParams(Object.assign({geometry:[lon-e,lat-e,lon+e,lat+e].join(','),geometryType:'esriGeometryEnvelope',spatialRel:'esriSpatialRelIntersects'},base)));
+    fs=(j.features||[]).filter(f=>f.geometry&&f.geometry.rings);
+    fs.sort((a,b)=>{ const da=ringMid(a.geometry.rings[0]), db=ringMid(b.geometry.rings[0]); return Math.hypot(da[0]-lon,da[1]-lat)-Math.hypot(db[0]-lon,db[1]-lat); });
+  } else fs.sort((a,b)=>ringArea(b.geometry.rings[0])-ringArea(a.geometry.rings[0]));
+  return fs.length?fs[0].geometry.rings[0]:null;
+}
+function squareAt(lon,lat){ const [x,y]=toM(lon,lat), h=12; return [[x-h,y-h],[x+h,y-h],[x+h,y+h],[x-h,y+h]]; }
+const llRing=r=>r.map(p=>toM(p[0],p[1]));
+function polyOf(m){ const xs=m.map(p=>p[0]), ys=m.map(p=>p[1]), r1=v=>Math.round(v*10)/10;
+  return {d:'M'+m.map(p=>r1(p[0])+' '+r1(p[1])).join(' ')+'Z',c:[r1((Math.min(...xs)+Math.max(...xs))/2),r1((Math.min(...ys)+Math.max(...ys))/2)],w:r1(Math.max(Math.max(...xs)-Math.min(...xs),8))}; }
+async function mtFind(r){
+  r.st='Looking for it…'; r.busy=true; mtRender();
+  try{
+    let pt=null, ring=null, src='';
+    if(r.addr){ pt=await geoAddr(r.addr); if(pt) src='state address record'; }
+    if(!pt){ const o=await geoName(r.name); if(o){ pt={lon:o.lon,lat:o.lat}; if(o.ring){ ring=llRing(o.ring); src='OpenStreetMap outline'; } else src='OpenStreetMap point'; } }
+    if(!pt){ r.st='Not found. Type the address and click Find, or use Place on map.'; r.poly=null; r.inc=false; }
+    else{
+      if(!ring){ const fp=await footprintAt(pt.lon,pt.lat); if(fp){ ring=llRing(fp); src+=' and state building footprint'; } }
+      if(!ring){ ring=squareAt(pt.lon,pt.lat); src+='. No footprint found, so a small box was placed. Check it.'; }
+      r.poly=polyOf(ring); r.poly.src=src; r.st='Found: '+src; r.inc=true; mtShow(r);
+    }
+  }catch(e){ r.st='Could not reach the map services ('+(e&&e.message||e)+'). Use Place on map.'; }
+  r.busy=false; mtRender();
+}
+function mtPreview(){
+  const g=$('#gPrev'); g.innerHTML='';
+  MT.rows.forEach(r=>{ if(!r.poly||!r.inc) return; g.append(el('path',{d:r.poly.d,class:'prev'})); const t=el('text',{x:r.poly.c[0],y:r.poly.c[1],class:'prevl','text-anchor':'middle'}); t.textContent=r.abbr||initials(r.name); t.style.fontSize=(11*view.w/rect().width)+'px'; t.style.strokeWidth=(3*view.w/rect().width)+'px'; g.append(t); });
+}
+function mtShow(r){ if(!r.poly) return; view.w=Math.min(view.w,420); view.h=view.w*rect().height/rect().width; view.x=r.poly.c[0]-view.w/2; view.y=r.poly.c[1]-view.h/2; applyView(); mtPreview(); }
+function mtReset(){ MT.rows=[]; MT.gone=[]; MT.armed=null; $('#mtOut').hidden=true; $('#mtMsg').textContent=''; $('#gPrev').innerHTML=''; document.body.classList.remove('placing'); }
+function mtRender(){
+  const nr=MT.rows;
+  $('#mtNewH').textContent=nr.length?`${nr.length} not in the test yet`:'';
+  $('#mtNew').innerHTML=nr.length?nr.map((r,k)=>`<div class="mtrow" data-k="${k}"><label class="chk"><input type="checkbox" data-f="inc" ${r.inc?'checked':''} ${r.poly?'':'disabled'}> Add</label><input type="text" data-f="abbr" value="${esc(r.abbr||'')}" placeholder="Abbr" aria-label="Abbreviation"><input type="text" data-f="name" value="${esc(r.name)}" aria-label="Name"><div class="wide"><input type="text" data-f="addr" value="${esc(r.addr||'')}" placeholder="Address, used to find it" aria-label="Address"><button type="button" class="btn alt" data-a="find" ${r.busy?'disabled':''}>Find</button><button type="button" class="btn alt" data-a="place">${MT.armed===r?'Click the map…':'Place on map'}</button><button type="button" class="btn alt" data-a="show" ${r.poly?'':'disabled'}>Show</button><button type="button" class="btn alt" data-a="drop">Drop</button></div><div class="wide st">${esc(r.st||'Not located yet. Click Find.')}</div></div>`).join(''):'<p class="muted">Every building on the new list is already in the test.</p>';
+  const gn=MT.gone;
+  $('#mtGoneH').textContent=gn.length?`${gn.length} in the test but not matched on the new list`:'';
+  $('#mtGone').innerHTML=gn.length?gn.map((g,k)=>`<label class="mtgone"><input type="checkbox" data-g="${k}" ${g.on?'checked':''}><span><b>${esc(g.it.code||'')}</b> ${esc(g.it.name)}<br><span class="muted">${esc(g.it.sub||'')}</span></span></label>`).join(''):'';
+  mtPreview();
+}
+async function mtCompare(){
+  const m=$('#mtMsg'), f=$('#mtFile').files[0]; let txt=$('#mtTxt').value;
+  m.textContent='Reading the list…';
+  try{
+    if(f){ txt=/\.pdf$/i.test(f.name)?await pdfLines(f):await f.text(); }
+    const list=parseList(txt);
+    if(!list.length){ m.textContent='No buildings found in that file. Paste the list as text, one building per line.'; return; }
+    const hit=new Set(), fresh=[];
+    list.forEach(e=>{ const it=matchEntry(e); if(it) hit.add(it); else fresh.push(e); });
+    MT.rows=fresh.map(e=>({name:e.name,abbr:e.abbr||'',addr:e.addr||'',inc:false,poly:null,st:''}));
+    MT.gone=bldItems().filter(it=>!hit.has(it)).map(it=>({it,on:false}));
+    $('#mtOut').hidden=false; $('#mtApplyMsg').textContent='';
+    m.textContent=`Read ${list.length} buildings from the list. ${hit.size} matched buildings already in the test, ${fresh.length} look new, ${MT.gone.length} in the test were not matched. A list of names only can miss renamed buildings, so check each row before you apply.`;
+    mtRender();
+    for(let i=0;i<MT.rows.length;i+=3) await Promise.all(MT.rows.slice(i,i+3).map(mtFind));
+  }catch(e){ m.textContent='Could not read that file: '+(e&&e.message||e); }
+}
+$('#mtGo').onclick=mtCompare;
+$('#mtAdd').onclick=()=>{ $('#mtOut').hidden=false; MT.rows.unshift({name:'',abbr:'',addr:'',inc:false,poly:null,st:'Type the name and address, then click Find.'}); mtRender(); const i=$('#mtNew input[data-f=name]'); if(i) i.focus(); };
+$('#mtNew').addEventListener('input',e=>{ const row=e.target.closest('[data-k]'); if(!row||!e.target.dataset.f) return; const r=MT.rows[+row.dataset.k], f=e.target.dataset.f;
+  if(f==='inc'){ r.inc=e.target.checked; mtPreview(); } else r[f]=e.target.value; });
+$('#mtNew').addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]'), row=e.target.closest('[data-k]'); if(!b||!row) return; const r=MT.rows[+row.dataset.k], a=b.dataset.a;
+  if(a==='find') mtFind(r);
+  else if(a==='show') mtShow(r);
+  else if(a==='drop'){ MT.rows.splice(+row.dataset.k,1); if(MT.armed===r){ MT.armed=null; document.body.classList.remove('placing'); } mtRender(); }
+  else if(a==='place'){ MT.armed=MT.armed===r?null:r; document.body.classList.toggle('placing',!!MT.armed); mtRender(); }
+});
+$('#mtGone').addEventListener('input',e=>{ const k=e.target.dataset.g; if(k!==undefined) MT.gone[+k].on=e.target.checked; });
+/* clicking the map places the armed building */
+let plDown=null;
+svg.addEventListener('pointerdown',e=>{ if(!MT.armed) return; plDown={x:e.clientX,y:e.clientY}; e.stopPropagation(); },true);
+svg.addEventListener('pointerup',async e=>{
+  if(!MT.armed||!plDown) return; e.stopPropagation(); e.preventDefault();
+  const moved=Math.hypot(e.clientX-plDown.x,e.clientY-plDown.y)>5; plDown=null; if(moved) return;
+  const r=MT.armed; MT.armed=null; document.body.classList.remove('placing');
+  const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const q=pt.matrixTransform(svg.getScreenCTM().inverse()), [lon,lat]=toLL(q.x,q.y);
+  r.st='Looking at the footprint records…'; mtRender();
+  try{ const fp=await footprintAt(lon,lat); const ring=fp?llRing(fp):squareAt(lon,lat); r.poly=polyOf(ring); r.poly.src=fp?'placed by hand, state building footprint':'placed by hand, small box'; r.st='Found: '+r.poly.src; r.inc=true; }
+  catch(x){ r.poly=polyOf(squareAt(lon,lat)); r.poly.src='placed by hand, small box'; r.st='Footprint records unavailable, so a small box was placed.'; r.inc=true; }
+  mtRender();
+},true);
+svg.addEventListener('click',e=>{ if(MT.armed) e.stopPropagation(); },true);
+const baseId=it=>it.id.replace(/#\d+$/,'');
+function dropBuilding(it){
+  const id=baseId(it);
+  if((OV.add||[]).some(a=>a.id===id)) OV.add=OV.add.filter(a=>a.id!==id); else if(!(OV.rm||[]).includes(id)) OV.rm=(OV.rm||[]).concat([id]);
+  delete OV.items[it.id];
+}
+function keysFor(name,abbr){
+  const lo=name.toLowerCase(), short=lo.replace(/\s*\([^)]*\)/g,'').replace(/\s+(hall|building|center|centre|laboratory|house)$/,'');
+  return [...new Set([lo,short,abbr.toLowerCase()].map(x=>x.trim()).filter(Boolean))];
+}
+async function structuralSaved(msgEl,text){
+  await flushShared();
+  const t=$('#admSaved').textContent; msgEl.textContent=text+' '+t;
+  $('#admReload').hidden=false;
+}
+$('#mtApply').onclick=async()=>{
+  const m=$('#mtApplyMsg'), adds=MT.rows.filter(r=>r.inc&&r.poly&&r.name.trim()), gone=MT.gone.filter(g=>g.on);
+  if(!adds.length&&!gone.length){ m.textContent='Nothing is selected.'; return; }
+  OV.add=(OV.add||[]).slice(); OV.rm=(OV.rm||[]).slice(); let a=0,skipped=0;
+  adds.forEach(r=>{ const nm=r.name.trim().replace(/\s+/g,' '), ab=(r.abbr||initials(nm)).trim().toUpperCase(), id='b|'+ab+'|'+nm;
+    if(items.some(i=>baseId(i)===id)||OV.add.some(x=>x.id===id)){ skipped++; return; }
+    OV.rm=OV.rm.filter(x=>x!==id);
+    OV.add.push({id,code:ab,name:nm,sub:(r.addr||'West Lafayette, IN').trim(),keys:keysFor(nm,ab),rq:false,d:r.poly.d,c:r.poly.c,w:r.poly.w,src:r.poly.src||''}); a++; });
+  gone.forEach(g=>dropBuilding(g.it));
+  persist(); m.textContent='Saving…';
+  await structuralSaved(m,`Added ${a}${skipped?` (${skipped} already existed)`:''}, removed ${gone.length}.`);
+  $('#gPrev').innerHTML='';
+};
+$('#admReload').onclick=()=>location.reload();
+let rmArm=null;
+$('#edRemove').onclick=async function(){
+  const i=S.sel; if(i==null) return; const it=items[i];
+  if(this.dataset.arm!=='1'){ this.dataset.arm='1'; this.textContent='Click again to remove it'; clearTimeout(rmArm); rmArm=setTimeout(()=>{ this.dataset.arm=''; this.textContent='Remove this building from the map'; },4000); return; }
+  this.dataset.arm=''; this.textContent='Remove this building from the map';
+  dropBuilding(it); persist(); $('#admEd').hidden=true; setMsg('Removing…');
+  await flushShared(); setMsg('Removed '+it.name+'. '+$('#admSaved').textContent); $('#admReload').hidden=false;
+};
 
 /* ---------- admin review of one test ---------- */
 let ARV=null, ARVP=null, ARVOPS=[];
@@ -1425,8 +1715,11 @@ $('#bArv').onclick=()=>{ if(!LAST) LAST=buildRec(); openGate(()=>openArv(LAST),'
 
 /* ---------- shared store and downloads (optional) ---------- */
 async function boot(){
-  showCover();
-  try{ if(window.crypto&&crypto.subtle&&/^https?:/.test(location.protocol)){ await loadVaultKey(); VKOK=true; $('#bEnc').hidden=false; $('#arvEnc').hidden=false; } }catch(e){}
+  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW) $('#gatePw').value=window.__PW; setTimeout(()=>$('#gateName').focus(),60); }
+  else showCover();
+  try{ if(window.crypto&&crypto.subtle&&/^https?:/.test(location.protocol)){ await loadVaultKey(); VKOK=true; } }catch(e){}
+  if(VKOK||window.__GH){ $('#bEnc').hidden=false; $('#arvEnc').hidden=false; }
+  if(window.__GH){ $('#bEnc').textContent='Save to database'; $('#arvEnc').textContent='Save to database'; }
   if(SP.on){ try{ const fs=await SP.list(''); const f=fs.find(x=>x.Name==='config-overrides.json'); if(f){ const o=parseOV(await SP.read(f.ServerRelativeUrl)); if(o&&o.at>OV.at){ OV=o; lsSet('pssp-ov',JSON.stringify(OV)); afterEdit(); } } }catch(e){} }
   const c=window.claude; if(!c||!c.use) return;
   try{ DL=await c.use('downloads'); }catch(e){}
