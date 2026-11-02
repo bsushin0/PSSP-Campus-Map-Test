@@ -6,6 +6,8 @@ Test site: [PSSP Campus Map Test](https://bsushin0.github.io/PSSP-Campus-Map-Tes
 
 Practice site: [PSSP Campus Map Practice](https://bsushin0.github.io/PSSP-Campus-Map-Test/practice.html)
 
+Admin site: [PSSP Campus Map Test](https://bsushin0.github.io/PSSP-Campus-Map-Test/admin.html)
+
 To get to practice from the test site, click **Practice version** on the unlock screen, or on the first screen after an admin unlocks it. To get back, click **Go to the test** at the top of the practice page. The link is not shown during a test, so nobody leaves by accident and loses their answers.
 
 ## What's in this repo
