@@ -1023,7 +1023,7 @@ const REPORT_CSS=`
 .rp tr{break-inside:avoid}
 .rp td.r{font-weight:700;white-space:nowrap}.rp td.r.y{color:var(--rp-ok)}.rp td.r.n{color:var(--rp-bad)}.rp td.r.u{color:var(--rp-mute)}
 .rp .sum td,.rp .sum th{font-size:.86rem}
-.rp .sig{display:grid;grid-template-columns:2fr 2fr 1fr;gap:22px;margin-top:38px}
+.rp .sig{display:grid;grid-template-columns:minmax(0,24rem);margin-top:38px}
 .rp .sig .sc{border:0;padding:0}
 .rp .sig .sv{min-height:30px;display:flex;align-items:flex-end;border:0;border-bottom:1px solid var(--rp-ink);padding:0 0 3px;font-weight:600;font-size:.92rem}
 .rp .sig .rpk{padding-top:4px}
@@ -1071,7 +1071,7 @@ function reportHtml(rec){
   <h2>Missed or not answered (${missed.length})</h2>${rpTable(missed)}
   <h2>All items (${all.length})</h2>${rpTable(all)}`}
   ${m.log.length?`<h2>Admin changes (${m.log.length})</h2><div class="tw"><table><thead><tr><th>Item</th><th>Initial</th><th>Change</th><th>Admin</th><th>Admin reason</th></tr></thead><tbody>${m.log.map(l=>`<tr><td>${esc(l.n)}${l.c?` <span style="color:var(--rp-mute)">(${esc(l.c)})</span>`:''}</td><td>${esc(l.init)}</td><td>${esc(l.from)} &rarr; <b>${esc(l.to)}</b></td><td>${esc(l.by)} (SP ${esc(l.sp)})<div class="rpa">${fmtDate(l.at)} ${fmtTime(l.at)}</div></td><td>${esc(l.why)}</td></tr>`).join('')}</tbody></table></div>`:''}
-  <div class="sig"><div class="sc"><div class="sv">${esc(rec.ev||'')}</div><div class="rpk">Evaluator name</div></div><div class="sc"><div class="sv"></div><div class="rpk">Signature (optional)</div></div><div class="sc"><div class="sv"></div><div class="rpk">Date</div></div></div>
+  <div class="sig"><div class="sc"><div class="sv">${esc(rec.ev||'')}</div><div class="rpk">Evaluator name</div></div></div>
   <div class="rpfoot"><span>Record ${esc(rec.id)}</span><span>Generated ${fmtDate(Date.now())} ${fmtTime(Date.now())}</span></div>
 </article>`;
 }
