@@ -1767,7 +1767,17 @@ $('#bArv').onclick=()=>{ if(!LAST) LAST=buildRec(); openGate(()=>openArv(LAST),'
 
 /* ---------- shared store and downloads (optional) ---------- */
 async function boot(){
-  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&(!window.__AP||window.__WHO==='a')){ $('#gatePw').value=window.__PW; if(window.__ADMONLY){ $('#gatePw').closest('.field').hidden=true; $('#gateSub').textContent='Enter your full name and your SP number. Your name and SP number are recorded with every change you make.'; } } setTimeout(()=>$('#gateName').focus(),60); }
+  if(ADMPAGE){ $('#cover').hidden=true;
+    /* one sign-in: the admin passcode, name and SP number are all checked on the unlock screen */
+    window.__adminSignIn=async(pw,name,sp)=>{
+      let okp=false; try{ okp=await passOk(String(pw||'').trim()); }catch(x){}
+      if(!okp) return 'Incorrect admin passcode.';
+      const nm=String(name||'').trim().replace(/\s+/g,' ');
+      if(nm.split(' ').filter(Boolean).length<2) return 'Enter your full name (first and last).';
+      const n=parseSp(sp);
+      if(n==null||!adminList().includes(n)) return 'That SP number is not authorized for admin access.';
+      ADMID={name:nm,sp:String(n)}; enterAdmin(); return '';
+    }; }
   else showCover();
   try{ if(window.crypto&&crypto.subtle&&/^https?:/.test(location.protocol)){ await loadVaultKey(); VKOK=true; } }catch(e){}
   if(VKOK||window.__GH){ $('#bEnc').hidden=false; $('#arvEnc').hidden=false; }
@@ -1792,11 +1802,11 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 #unl h1{margin:0;font:700 1.6rem/1 "Arial Narrow",system-ui,sans-serif;text-transform:uppercase}
 #unl p{margin:0;color:#46565A;font-size:.9rem}
 #unl label{font:600 .7rem ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:#46565A;display:block;margin-bottom:3px}
-#unl input[type=password],#unl input[type=file]{font:inherit;padding:9px;border:1.5px solid #46565A;background:#E7ECEA;color:#16221F;width:100%}
+#unl input[type=password],#unl input[type=text],#unl input[type=file]{font:inherit;padding:9px;border:1.5px solid #46565A;background:#E7ECEA;color:#16221F;width:100%}
 #unl button{font:600 .95rem system-ui,sans-serif;padding:10px 16px;border:1.5px solid #16221F;background:#16221F;color:#E7ECEA;cursor:pointer}
 #unl .m{min-height:1.3em;color:#B93B34;font-size:.88rem}
 #unl .r{display:flex;gap:6px;align-items:center;font-size:.85rem;color:#46565A}
-@media (prefers-color-scheme:dark){#unl{background:#11181A;color:#E4ECEA}#unl form{background:#192225;border-color:#2B383C;border-top-color:#EBBB3F}#unl p,#unl label,#unl .r{color:#9CABAF}#unl input[type=password],#unl input[type=file]{background:#11181A;color:#E4ECEA;border-color:#9CABAF}#unl button{background:#E4ECEA;color:#11181A;border-color:#E4ECEA}#unl .m{color:#EE7B73}}
+@media (prefers-color-scheme:dark){#unl{background:#11181A;color:#E4ECEA}#unl form{background:#192225;border-color:#2B383C;border-top-color:#EBBB3F}#unl p,#unl label,#unl .r{color:#9CABAF}#unl input[type=password],#unl input[type=text],#unl input[type=file]{background:#11181A;color:#E4ECEA;border-color:#9CABAF}#unl button{background:#E4ECEA;color:#11181A;border-color:#E4ECEA}#unl .m{color:#EE7B73}}
 </style>
 <div id="unl" role="dialog" aria-modal="true" aria-labelledby="unlT">
 <form id="unlF" autocomplete="off">
@@ -1820,7 +1830,7 @@ async function _kek(pw,salt,iter,use){
 async function open_(pw){
   var r=await fetch('data/private.enc.json',{cache:'no-store'}); if(!r.ok) throw new Error('data/private.enc.json was not found.');
   var j=await r.json(), pt; window.__USED=pw;
-  if(j.v===3){
+  if(j.v===3){ window.__V3=true;
     try{ pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(j.iv)},await _kek(pw,_unb64(j.salt),j.iter,['decrypt']),_unb64(j.c)); }catch(e){ throw new Error('Wrong passcode.'); }
   } else if(j.v===4){
     var dk=null, names=window.__ADMONLY?['a']:['t','a'];
@@ -1837,8 +1847,11 @@ $('#unlF').addEventListener('submit',async function(e){
   e.preventDefault(); var m=$('#unlM'); m.textContent='Unlocking…'; $('#unlB').disabled=true;
   try{
     if(!(window.crypto&&crypto.subtle)) throw new Error('Use Edge or Chrome over https.');
-    var pw=$('#unlP').value;
-    var p=await open_(pw); pw=window.__USED||pw;
+    var apw=$('#unlP').value, tpw=(window.__ADMONLY&&$('#unlTp'))?$('#unlTp').value:'';
+    if(!window.__STARTED){
+    var pw=tpw||apw, p;
+    try{ p=await open_(pw); }catch(er){ if(window.__ADMONLY&&!tpw&&window.__V3&&$('#unlTw')){ $('#unlTw').hidden=false; $('#unlTp').focus(); throw new Error('Wrong passcode. If this setup has a separate test passcode, type it in the extra box too. Re-saving the setup file in vault-setup.html removes this extra step.'); } throw er; }
+    pw=window.__USED||pw;
     p.b.forEach(function(x,i){Object.assign(DATA.b[i],x);}); p.s.forEach(function(x,i){Object.assign(DATA.s[i],x);}); if(p.ov) DATA.ov=p.ov;
     window.__ADM=p.admins; window.__PW=pw; window.__AP=p.ap||null; window.__OVK=p.ovk||null; window.__GH=(p.gh&&p.gh.token)?p.gh:null; var note=window.__GH?'Autosave is on.':'Autosave is off. Save each result by hand.';
     try{
@@ -1849,7 +1862,10 @@ $('#unlF').addEventListener('submit',async function(e){
         var okey=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:_unb64(oj.salt),iterations:oj.iter},obase,{name:'AES-GCM',length:256},false,['decrypt']);
         var opt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(oj.iv)},okey,_unb64(oj.c)); var ov=JSON.parse(new TextDecoder().decode(opt)); if(ov&&ov.items) DATA.ov=ov; }
     }catch(e){}
-    $('#unl').remove(); window.__start(); var st=document.querySelector('#spStat'); if(st) st.textContent=note;
+    window.__start(); window.__STARTED=1; var st=document.querySelector('#spStat'); if(st) st.textContent=note;
+    }
+    if(window.__ADMONLY){ var er2=await window.__adminSignIn(apw,$('#unlN').value,$('#unlS').value); if(er2){ m.textContent=er2; $('#unlB').disabled=false; return; } }
+    $('#unl').remove();
   }catch(err){ m.textContent=err&&err.message||String(err); $('#unlB').disabled=false; }
 });
 $('#unlP').focus();

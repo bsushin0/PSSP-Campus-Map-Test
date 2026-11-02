@@ -1772,7 +1772,17 @@ $('#bArv').onclick=()=>{ if(!LAST) LAST=buildRec(); openGate(()=>openArv(LAST),'
 
 /* ---------- shared store and downloads (optional) ---------- */
 async function boot(){
-  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&(!window.__AP||window.__WHO==='a')){ $('#gatePw').value=window.__PW; if(window.__ADMONLY){ $('#gatePw').closest('.field').hidden=true; $('#gateSub').textContent='Enter your full name and your SP number. Your name and SP number are recorded with every change you make.'; } } setTimeout(()=>$('#gateName').focus(),60); }
+  if(ADMPAGE){ $('#cover').hidden=true;
+    /* one sign-in: the admin passcode, name and SP number are all checked on the unlock screen */
+    window.__adminSignIn=async(pw,name,sp)=>{
+      let okp=false; try{ okp=await passOk(String(pw||'').trim()); }catch(x){}
+      if(!okp) return 'Incorrect admin passcode.';
+      const nm=String(name||'').trim().replace(/\s+/g,' ');
+      if(nm.split(' ').filter(Boolean).length<2) return 'Enter your full name (first and last).';
+      const n=parseSp(sp);
+      if(n==null||!adminList().includes(n)) return 'That SP number is not authorized for admin access.';
+      ADMID={name:nm,sp:String(n)}; enterAdmin(); return '';
+    }; }
   else showCover();
   try{ if(window.crypto&&crypto.subtle&&/^https?:/.test(location.protocol)){ await loadVaultKey(); VKOK=true; } }catch(e){}
   if(VKOK||window.__GH){ $('#bEnc').hidden=false; $('#arvEnc').hidden=false; }
