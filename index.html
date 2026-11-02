@@ -1767,7 +1767,7 @@ $('#bArv').onclick=()=>{ if(!LAST) LAST=buildRec(); openGate(()=>openArv(LAST),'
 
 /* ---------- shared store and downloads (optional) ---------- */
 async function boot(){
-  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&(!window.__AP||window.__ADMONLY)){ $('#gatePw').value=window.__PW; if(window.__ADMONLY){ $('#gatePw').closest('.field').hidden=true; $('#gateSub').textContent='Enter your full name and your SP number. Your name and SP number are recorded with every change you make.'; } } setTimeout(()=>$('#gateName').focus(),60); }
+  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&(!window.__AP||window.__WHO==='a')){ $('#gatePw').value=window.__PW; if(window.__ADMONLY){ $('#gatePw').closest('.field').hidden=true; $('#gateSub').textContent='Enter your full name and your SP number. Your name and SP number are recorded with every change you make.'; } } setTimeout(()=>$('#gateName').focus(),60); }
   else showCover();
   try{ if(window.crypto&&crypto.subtle&&/^https?:/.test(location.protocol)){ await loadVaultKey(); VKOK=true; } }catch(e){}
   if(VKOK||window.__GH){ $('#bEnc').hidden=false; $('#arvEnc').hidden=false; }
@@ -1826,7 +1826,7 @@ async function open_(pw){
     var dk=null, names=window.__ADMONLY?['a']:['t','a'];
     for(var n=0;n<names.length&&!dk;n++){
       var w=j.wk[names[n]], p1=names[n]==='a'?pw.trim():pw; if(!w) continue;
-      try{ dk=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(w.iv)},await _kek(p1,_unb64(w.salt),w.iter,['decrypt']),_unb64(w.c)); window.__USED=p1; }catch(e){}
+      try{ dk=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(w.iv)},await _kek(p1,_unb64(w.salt),w.iter,['decrypt']),_unb64(w.c)); window.__USED=p1; window.__WHO=names[n]; }catch(e){}
     }
     if(!dk) throw new Error(window.__ADMONLY?'Wrong admin passcode.':'Wrong passcode.');
     pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(j.iv)},await crypto.subtle.importKey('raw',dk,'AES-GCM',false,['decrypt']),_unb64(j.c));

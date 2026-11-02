@@ -1772,7 +1772,7 @@ $('#bArv').onclick=()=>{ if(!LAST) LAST=buildRec(); openGate(()=>openArv(LAST),'
 
 /* ---------- shared store and downloads (optional) ---------- */
 async function boot(){
-  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&(!window.__AP||window.__ADMONLY)){ $('#gatePw').value=window.__PW; if(window.__ADMONLY){ $('#gatePw').closest('.field').hidden=true; $('#gateSub').textContent='Enter your full name and your SP number. Your name and SP number are recorded with every change you make.'; } } setTimeout(()=>$('#gateName').focus(),60); }
+  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&(!window.__AP||window.__WHO==='a')){ $('#gatePw').value=window.__PW; if(window.__ADMONLY){ $('#gatePw').closest('.field').hidden=true; $('#gateSub').textContent='Enter your full name and your SP number. Your name and SP number are recorded with every change you make.'; } } setTimeout(()=>$('#gateName').focus(),60); }
   else showCover();
   try{ if(window.crypto&&crypto.subtle&&/^https?:/.test(location.protocol)){ await loadVaultKey(); VKOK=true; } }catch(e){}
   if(VKOK||window.__GH){ $('#bEnc').hidden=false; $('#arvEnc').hidden=false; }
