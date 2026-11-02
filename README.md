@@ -47,7 +47,7 @@ Spelling doesn't need to be perfect, and common nicknames and abbreviations are 
 
 ## For admins
 
-**Starting a test.** Open the page, enter the admin passcode and click Unlock. The status line under the buttons says whether autosave is on. Then hand the screen to the SP.
+**Starting a test.** Open the page, enter the admin passcode and click Unlock. The status line under the buttons says whether autosave is on. Then hand the screen to the SP. When you're done for the day, click Lock the test on the first screen. It takes the page back to the passcode screen.
 
 **After the test.** If autosave is on, results save themselves. When the SP clicks Finish, the encrypted record is added to the `database` folder in this repo and the status line under the buttons says so. Approving a change in Admin review saves it again the same way.
 
@@ -61,7 +61,7 @@ If the status line says it couldn't save, click Save to database to try again. I
 - To change the overall grade, use the Change grade button next to the grade.
 - Approving saves the change to the repo automatically. It uses the same file name as the original, so it replaces the old copy.
 
-**Cancelling a test.** If a test has started and you open Admin mode on the test page, you get a Cancel this test button and the Test records list. Click Cancel twice to confirm. The test is thrown away without saving anything and the page goes back to the first screen. Admin mode on the test page is only for what happens during and after a test.
+**Cancelling a test.** If a test has started and you click Admin on the test page, you get a Cancel this test button and the Test records list. Click Cancel twice to confirm. The test is thrown away without saving anything and the page goes back to the first screen. Admin mode on the test page is only for what happens during and after a test.
 
 **Test setup (admin page).** Everything that changes the test itself is on `admin.html`. Open it from the Test setup link on the test page's first screen. It asks for the admin passcode, then your name and SP number. If autosave is on, every change is saved to this repo and every admin gets it the next time they unlock the test. The practice page follows the changes too. If autosave is off, changes stay on that computer only.
 

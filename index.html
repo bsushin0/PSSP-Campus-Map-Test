@@ -503,7 +503,7 @@ body.placing #map{cursor:crosshair}
       <button type="submit" class="btn" id="cvStart">Start the test</button>
     </form>
     <div class="dirs" id="cvDirs"></div>
-    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="admin.html">Test setup</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Admin mode</button></div>
+    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="admin.html">Test setup</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Lock the test</button></div>
   </div>
 </div>
 
@@ -1400,7 +1400,7 @@ $('#gateForm').addEventListener('submit',async e=>{
   ADMID={name:nm,sp:String(n)}; $('#gate').hidden=true; const f=GATE_NEXT; GATE_NEXT=null; f&&f();
 });
 $('#gateCancel').onclick=()=>{ if(ADMPAGE&&!ADM){ location.href='./'; return; } $('#gate').hidden=true; };
-$('#cvAdmin').onclick=()=>openGate(enterAdmin,'Admin mode'); $('#bAdmin').onclick=()=>openGate(enterAdmin,'Admin mode');
+$('#cvAdmin').onclick=()=>{ location.reload(); }; $('#bAdmin').onclick=()=>openGate(enterAdmin,'Admin mode');
 
 /* ---------- admin page: test settings and building updates ---------- */
 const LON0=-86.9250, LAT0=40.4290;
