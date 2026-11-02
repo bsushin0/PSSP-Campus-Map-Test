@@ -49,7 +49,7 @@ Spelling doesn't need to be perfect, and common nicknames and abbreviations are 
 
 ## For admins
 
-**Starting a test.** Open the page, enter the test passcode and the evaluator name (the admin running the test, first and last name), then click Unlock. The evaluator name prints on the report above the signature line. The signature itself is optional. The status line under the buttons says whether autosave is on. Then hand the screen to the SP. When you're done for the day, click Lock the test on the first screen. It takes the page back to the passcode screen.
+**Starting a test.** Open the page, enter the test passcode and the evaluator's full name and SP number (the admin running the test), then click Unlock. They print on the report above the signature line as "Full Name, SP ##". The signature itself is optional. The status line under the buttons says whether autosave is on. Then hand the screen to the SP. When you're done for the day, click Lock the test on the first screen. It takes the page back to the passcode screen.
 
 **After the test.** If autosave is on, results save themselves. When the SP clicks Finish, the encrypted record is added to the `database` folder in this repo and the status line under the buttons says so. Approving a change in Admin review saves it again the same way.
 

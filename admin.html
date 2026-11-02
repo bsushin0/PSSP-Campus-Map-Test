@@ -1849,7 +1849,7 @@ $('#unlF').addEventListener('submit',async function(e){
   e.preventDefault(); var m=$('#unlM'); m.textContent='Unlocking…'; $('#unlB').disabled=true;
   try{
     if(!(window.crypto&&crypto.subtle)) throw new Error('Use Edge or Chrome over https.');
-    if(!window.__ADMONLY&&!window.__STARTED){ var evn=$('#unlE').value.trim().replace(/ +/g,' '); if(evn.split(' ').length<2){ m.textContent='Enter the evaluator name (first and last).'; $('#unlB').disabled=false; return; } window.__EVAL=evn; }
+    if(!window.__ADMONLY&&!window.__STARTED){ var evn=$('#unlE').value.trim().replace(/ +/g,' '); var evs=$('#unlES').value.trim().replace(/^sp[ #.-]*/i,''); if(evn.split(' ').length<2){ m.textContent='Enter the evaluator full name (first and last).'; $('#unlB').disabled=false; return; } if(!/^[0-9]+$/.test(evs)){ m.textContent='Enter the evaluator SP number (digits only).'; $('#unlB').disabled=false; return; } window.__EVAL=evn+', SP '+evs; }
     var apw=$('#unlP').value, tpw=(window.__ADMONLY&&$('#unlTp'))?$('#unlTp').value:'';
     if(!window.__STARTED){
     var pw=tpw||apw, p;

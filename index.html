@@ -1813,9 +1813,9 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 <div id="unl" role="dialog" aria-modal="true" aria-labelledby="unlT">
 <form id="unlF" autocomplete="off">
 <h1 id="unlT">PSSP Campus Map Test</h1>
-<p>An administrator unlocks the test before it starts. Enter the test passcode and the evaluator's name (the admin running the test). The name prints on the report.</p>
+<p>An administrator unlocks the test before it starts. Enter the test passcode and the evaluator's full name and SP number (the admin running the test). They print on the report.</p>
 <div><label for="unlP">Test passcode</label><input type="password" id="unlP" autocomplete="current-password"></div>
-<div id="unlEw"><label for="unlE">Evaluator name</label><input type="text" id="unlE" autocomplete="off" placeholder="Admin SP, first and last name"></div>
+<div id="unlEw"><div><label for="unlE">Evaluator full name</label><input type="text" id="unlE" autocomplete="off" placeholder="First and last name"></div><div style="margin-top:12px"><label for="unlES">Evaluator SP number</label><input type="text" id="unlES" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div></div>
 <button type="submit" id="unlB">Unlock</button>
 <p class="r"><a href="practice.html" style="color:inherit">Practice version</a></p>
 <p class="m" id="unlM" role="status"></p>
@@ -1850,7 +1850,7 @@ $('#unlF').addEventListener('submit',async function(e){
   e.preventDefault(); var m=$('#unlM'); m.textContent='Unlocking…'; $('#unlB').disabled=true;
   try{
     if(!(window.crypto&&crypto.subtle)) throw new Error('Use Edge or Chrome over https.');
-    if(!window.__ADMONLY&&!window.__STARTED){ var evn=$('#unlE').value.trim().replace(/ +/g,' '); if(evn.split(' ').length<2){ m.textContent='Enter the evaluator name (first and last).'; $('#unlB').disabled=false; return; } window.__EVAL=evn; }
+    if(!window.__ADMONLY&&!window.__STARTED){ var evn=$('#unlE').value.trim().replace(/ +/g,' '); var evs=$('#unlES').value.trim().replace(/^sp[ #.-]*/i,''); if(evn.split(' ').length<2){ m.textContent='Enter the evaluator full name (first and last).'; $('#unlB').disabled=false; return; } if(!/^[0-9]+$/.test(evs)){ m.textContent='Enter the evaluator SP number (digits only).'; $('#unlB').disabled=false; return; } window.__EVAL=evn+', SP '+evs; }
     var apw=$('#unlP').value, tpw=(window.__ADMONLY&&$('#unlTp'))?$('#unlTp').value:'';
     if(!window.__STARTED){
     var pw=tpw||apw, p;
