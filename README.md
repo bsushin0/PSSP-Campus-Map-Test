@@ -47,7 +47,7 @@ Spelling doesn't need to be perfect, and common nicknames and abbreviations are 
 
 ## For admins
 
-**Starting a test.** Open the page, enter the admin passcode and click Unlock. The status line under the buttons says whether autosave is on. Then hand the screen to the SP. When you're done for the day, click Lock the test on the first screen. It takes the page back to the passcode screen.
+**Starting a test.** Open the page, enter the test passcode and click Unlock. The status line under the buttons says whether autosave is on. Then hand the screen to the SP. When you're done for the day, click Lock the test on the first screen. It takes the page back to the passcode screen.
 
 **After the test.** If autosave is on, results save themselves. When the SP clicks Finish, the encrypted record is added to the `database` folder in this repo and the status line under the buttons says so. Approving a change in Admin review saves it again the same way.
 
@@ -55,7 +55,7 @@ Still do this every time: click Printable report, then Download report, and save
 
 If the status line says it couldn't save, click Save to database to try again. It saves straight to the `database` folder and nothing downloads to your computer. Only if autosave is off does the button download a file, and then you upload it to the `database` folder by hand (Add file, Upload files, Commit). Results only exist in the open tab until they're saved, so don't close it on an error.
 
-**Reviewing and changing a result.** Use Admin review. You'll need the passcode and your own SP number. Every admin SP number is checked, and your name goes on any change you make.
+**Reviewing and changing a result.** Use Admin review. You'll need the admin passcode and your own SP number. Every admin SP number is checked, and your name goes on any change you make.
 
 - You can mark a missed item as correct or a correct one as wrong, with a reason. Changes are only pending until you click Approve and save. Revert throws them away.
 - To change the overall grade, use the Change grade button next to the grade.
@@ -63,7 +63,7 @@ If the status line says it couldn't save, click Save to database to try again. I
 
 **Cancelling a test.** If a test has started and you click Admin on the test page, you get a Cancel this test button and the Test records list. Click Cancel twice to confirm. The test is thrown away without saving anything and the page goes back to the first screen. Admin mode on the test page is only for what happens during and after a test.
 
-**Test setup (admin page).** Everything that changes the test itself is on `admin.html`. Open it from the Test setup link on the test page's first screen. It asks for the admin passcode, then your name and SP number. If autosave is on, every change is saved to this repo and every admin gets it the next time they unlock the test. The practice page follows the changes too. If autosave is off, changes stay on that computer only.
+**Test setup (admin page).** Everything that changes the test itself is on `admin.html`. Open it from the Test setup link on the test page's first screen. It asks for the test passcode to open the page, then the admin passcode, then your name and SP number. If autosave is on, every change is saved to this repo and every admin gets it the next time they unlock the test. The practice page follows the changes too. If autosave is off, changes stay on that computer only.
 
 - **Items.** Click one on the map or in the list. You can fix its name, label or address, add accepted answers, mark it required, or leave it out of the test. Try an answer lets you check what would count.
 - **Update buildings from a new campus map.** Choose the new map's building list (a PDF, CSV, JSON or text file) or paste it. Compare reads it and checks it against the buildings already in the test. Buildings that are new get looked up through the state address records and the state building footprints, with OpenStreetMap as a backup, and the outline shows on the map. Fix the abbreviation or address and click Find, or click Place on map and then the building. Buildings in the test that aren't on the new list show up as possibly removed. Tick the ones to take out. Nothing changes until you click Apply changes. After applying, reload the page to see the new map. A list of names only can miss renamed buildings, so check each row first.
@@ -100,6 +100,6 @@ database/         encrypted test results, one file per test
 
 ## Things to know
 
-- There are two passwords: the admin passcode for the test and the vault password for saved results. Only admins should have them.
+- There are three passwords: the test passcode (unlocks the test), the admin passcode (Admin mode, Admin review, grade changes and Test setup) and the vault password (saved results). Give the admin passcode and vault password only to admins. They can be changed separately with `vault-setup.html` (kept in the private SharePoint folder, not in this repo).
 - The protection is basic and meant to keep trainees from reading the answers during a proctored test. A short password could be guessed by someone who downloads the encrypted files.
 - Tests aren't stored in the browser. Wait for the saved message before you close the tab.

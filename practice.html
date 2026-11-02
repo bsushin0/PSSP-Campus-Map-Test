@@ -503,7 +503,7 @@ body.placing #map{cursor:crosshair}
       <button type="submit" class="btn" id="cvStart">Start the test</button>
     </form>
     <div class="dirs" id="cvDirs"></div>
-    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="admin.html">Test setup</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Admin mode</button></div>
+    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="admin.html">Test setup</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Lock the test</button></div>
   </div>
 </div>
 
@@ -566,8 +566,8 @@ body.placing #map{cursor:crosshair}
 <div class="gate" id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateT">
   <form id="gateForm" autocomplete="off">
     <h2 id="gateT" style="margin:0;font:700 1.25rem/1.1 var(--display);text-transform:uppercase">Admin sign-in</h2>
-    <p class="muted" id="gateSub" style="margin:0">Enter the passcode, your full name and your SP number. Your name and SP number are recorded with every change you make.</p>
-    <div class="field"><label class="f" for="gatePw">Passcode</label><input type="password" id="gatePw" autocomplete="off"></div>
+    <p class="muted" id="gateSub" style="margin:0">Enter the admin passcode, your full name and your SP number. Your name and SP number are recorded with every change you make.</p>
+    <div class="field"><label class="f" for="gatePw">Admin passcode</label><input type="password" id="gatePw" autocomplete="off"></div>
     <div class="field"><label class="f" for="gateName">Full name</label><input type="text" id="gateName" autocomplete="off" placeholder="First and last name"></div>
     <div class="field"><label class="f" for="gateSp">SP number</label><input type="text" id="gateSp" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div>
     <p class="err" id="gateErr" role="alert"></p>
@@ -1204,7 +1204,7 @@ function ghSave(rec){
 }
 async function sealOv(){
   const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), iter=600000;
-  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(window.__PW),'PBKDF2',false,['deriveKey']);
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(window.__OVK||window.__PW),'PBKDF2',false,['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt,iterations:iter},base,{name:'AES-GCM',length:256},false,['encrypt']);
   const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(OV)));
   return JSON.stringify({v:3,salt:b64(salt),iter,iv:b64(iv),c:b64(ct)});
@@ -1397,7 +1397,7 @@ function openGate(next,title){
 $('#gateForm').addEventListener('submit',async e=>{
   e.preventDefault(); const err=m=>{$('#gateErr').textContent=m;};
   let okp=false; try{ okp=await passOk($('#gatePw').value.trim()); }catch(x){}
-  if(!okp){ err('Incorrect passcode.'); $('#gatePw').select(); return; }
+  if(!okp){ err('Incorrect admin passcode.'); $('#gatePw').select(); return; }
   const nm=$('#gateName').value.trim().replace(/\s+/g,' ');
   if(nm.split(' ').filter(Boolean).length<2){ err('Enter your full name (first and last).'); $('#gateName').focus(); return; }
   const n=parseSp($('#gateSp').value);
@@ -1405,7 +1405,7 @@ $('#gateForm').addEventListener('submit',async e=>{
   ADMID={name:nm,sp:String(n)}; $('#gate').hidden=true; const f=GATE_NEXT; GATE_NEXT=null; f&&f();
 });
 $('#gateCancel').onclick=()=>{ if(ADMPAGE&&!ADM){ location.href='./'; return; } $('#gate').hidden=true; };
-$('#cvAdmin').onclick=()=>openGate(enterAdmin,'Admin mode'); $('#bAdmin').onclick=()=>openGate(enterAdmin,'Admin mode');
+$('#cvAdmin').onclick=()=>{ location.reload(); }; $('#bAdmin').onclick=()=>openGate(enterAdmin,'Admin mode');
 
 /* ---------- admin page: test settings and building updates ---------- */
 const LON0=-86.9250, LAT0=40.4290;
@@ -1720,7 +1720,7 @@ $('#bArv').onclick=()=>{ if(!LAST) LAST=buildRec(); openGate(()=>openArv(LAST),'
 
 /* ---------- shared store and downloads (optional) ---------- */
 async function boot(){
-  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW) $('#gatePw').value=window.__PW; setTimeout(()=>$('#gateName').focus(),60); }
+  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&!window.__AP) $('#gatePw').value=window.__PW; setTimeout(()=>$('#gateName').focus(),60); }
   else showCover();
   try{ if(window.crypto&&crypto.subtle&&/^https?:/.test(location.protocol)){ await loadVaultKey(); VKOK=true; } }catch(e){}
   if(VKOK||window.__GH){ $('#bEnc').hidden=false; $('#arvEnc').hidden=false; }

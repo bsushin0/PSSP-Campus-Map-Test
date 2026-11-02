@@ -503,7 +503,7 @@ body.placing #map{cursor:crosshair}
       <button type="submit" class="btn" id="cvStart">Start the test</button>
     </form>
     <div class="dirs" id="cvDirs"></div>
-    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="admin.html">Test setup</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Admin mode</button></div>
+    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="admin.html">Test setup</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Lock the test</button></div>
   </div>
 </div>
 
@@ -566,8 +566,8 @@ body.placing #map{cursor:crosshair}
 <div class="gate" id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateT">
   <form id="gateForm" autocomplete="off">
     <h2 id="gateT" style="margin:0;font:700 1.25rem/1.1 var(--display);text-transform:uppercase">Admin sign-in</h2>
-    <p class="muted" id="gateSub" style="margin:0">Enter the passcode, your full name and your SP number. Your name and SP number are recorded with every change you make.</p>
-    <div class="field"><label class="f" for="gatePw">Passcode</label><input type="password" id="gatePw" autocomplete="off"></div>
+    <p class="muted" id="gateSub" style="margin:0">Enter the admin passcode, your full name and your SP number. Your name and SP number are recorded with every change you make.</p>
+    <div class="field"><label class="f" for="gatePw">Admin passcode</label><input type="password" id="gatePw" autocomplete="off"></div>
     <div class="field"><label class="f" for="gateName">Full name</label><input type="text" id="gateName" autocomplete="off" placeholder="First and last name"></div>
     <div class="field"><label class="f" for="gateSp">SP number</label><input type="text" id="gateSp" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div>
     <p class="err" id="gateErr" role="alert"></p>
@@ -1205,7 +1205,7 @@ function ghSave(rec){
 }
 async function sealOv(){
   const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), iter=600000;
-  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(window.__PW),'PBKDF2',false,['deriveKey']);
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(window.__OVK||window.__PW),'PBKDF2',false,['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt,iterations:iter},base,{name:'AES-GCM',length:256},false,['encrypt']);
   const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(OV)));
   return JSON.stringify({v:3,salt:b64(salt),iter,iv:b64(iv),c:b64(ct)});
@@ -1244,7 +1244,7 @@ $('#xchgApply').onclick=()=>importText($('#xchgTxt').value);
 
 /* ---------- admin ---------- */
 /* Admin passcode is stored only as a salted hash (PBKDF2-SHA-256). Make a new one with vault-setup.html. */
-async function passOk(pw){ return !!window.__PW && pw===window.__PW; }
+async function passOk(pw){ if(!window.__PW||!pw) return false; var a=window.__AP; if(!a) return pw===window.__PW; var u=function(s){var b=atob(s),x=new Uint8Array(b.length);for(var i=0;i<b.length;i++)x[i]=b.charCodeAt(i);return x;}; var k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']); var h=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:u(a.salt),iterations:a.iter},k,256)); var e=u(a.h); if(h.length!==e.length) return false; var d=0; for(var i=0;i<h.length;i++) d|=h[i]^e[i]; return d===0; }
 const FIELDS=['name','label','sub','keys','rq','ex'];
 let filt={q:'',f:'all'};
 const edited=it=>{const o=OV.items[it.id]; return !!o&&FIELDS.some(k=>o[k]!==undefined);};
@@ -1392,7 +1392,7 @@ function openGate(next,title){
 $('#gateForm').addEventListener('submit',async e=>{
   e.preventDefault(); const err=m=>{$('#gateErr').textContent=m;};
   let okp=false; try{ okp=await passOk($('#gatePw').value.trim()); }catch(x){}
-  if(!okp){ err('Incorrect passcode.'); $('#gatePw').select(); return; }
+  if(!okp){ err('Incorrect admin passcode.'); $('#gatePw').select(); return; }
   const nm=$('#gateName').value.trim().replace(/\s+/g,' ');
   if(nm.split(' ').filter(Boolean).length<2){ err('Enter your full name (first and last).'); $('#gateName').focus(); return; }
   const n=parseSp($('#gateSp').value);
@@ -1400,7 +1400,7 @@ $('#gateForm').addEventListener('submit',async e=>{
   ADMID={name:nm,sp:String(n)}; $('#gate').hidden=true; const f=GATE_NEXT; GATE_NEXT=null; f&&f();
 });
 $('#gateCancel').onclick=()=>{ if(ADMPAGE&&!ADM){ location.href='./'; return; } $('#gate').hidden=true; };
-$('#cvAdmin').onclick=()=>openGate(enterAdmin,'Admin mode'); $('#bAdmin').onclick=()=>openGate(enterAdmin,'Admin mode');
+$('#cvAdmin').onclick=()=>{ location.reload(); }; $('#bAdmin').onclick=()=>openGate(enterAdmin,'Admin mode');
 
 /* ---------- admin page: test settings and building updates ---------- */
 const LON0=-86.9250, LAT0=40.4290;
@@ -1715,7 +1715,7 @@ $('#bArv').onclick=()=>{ if(!LAST) LAST=buildRec(); openGate(()=>openArv(LAST),'
 
 /* ---------- shared store and downloads (optional) ---------- */
 async function boot(){
-  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW) $('#gatePw').value=window.__PW; setTimeout(()=>$('#gateName').focus(),60); }
+  if(ADMPAGE){ $('#cover').hidden=true; openGate(enterAdmin,'Admin sign-in'); if(window.__PW&&!window.__AP) $('#gatePw').value=window.__PW; setTimeout(()=>$('#gateName').focus(),60); }
   else showCover();
   try{ if(window.crypto&&crypto.subtle&&/^https?:/.test(location.protocol)){ await loadVaultKey(); VKOK=true; } }catch(e){}
   if(VKOK||window.__GH){ $('#bEnc').hidden=false; $('#arvEnc').hidden=false; }
@@ -1749,8 +1749,8 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 <div id="unl" role="dialog" aria-modal="true" aria-labelledby="unlT">
 <form id="unlF" autocomplete="off">
 <h1 id="unlT">PSSP Campus Map Admin</h1>
-<p>Test setup for administrators. Enter the admin passcode.</p>
-<div><label for="unlP">Admin passcode</label><input type="password" id="unlP" autocomplete="current-password"></div>
+<p>Test setup for administrators. Enter the test passcode first; the admin passcode comes next.</p>
+<div><label for="unlP">Test passcode</label><input type="password" id="unlP" autocomplete="current-password"></div>
 <button type="submit" id="unlB">Unlock</button>
 <p class="r"><a href="./" style="color:inherit">Back to the test</a></p>
 <p class="m" id="unlM" role="status"></p>
@@ -1776,12 +1776,12 @@ $('#unlF').addEventListener('submit',async function(e){
     var pw=$('#unlP').value;
     var p=await open_(pw);
     p.b.forEach(function(x,i){Object.assign(DATA.b[i],x);}); p.s.forEach(function(x,i){Object.assign(DATA.s[i],x);}); if(p.ov) DATA.ov=p.ov;
-    window.__ADM=p.admins; window.__PW=pw; window.__GH=(p.gh&&p.gh.token)?p.gh:null; var note=window.__GH?'Autosave is on.':'Autosave is off. Save each result by hand.';
+    window.__ADM=p.admins; window.__PW=pw; window.__AP=p.ap||null; window.__OVK=p.ovk||null; window.__GH=(p.gh&&p.gh.token)?p.gh:null; var note=window.__GH?'Autosave is on.':'Autosave is off. Save each result by hand.';
     try{
       var otxt=null, g=window.__GH;
       if(g){ var ro=await fetch('https://api.github.com/repos/'+g.repo+'/contents/data/overrides.enc.json?ref='+(g.branch||'main'),{headers:{Authorization:'Bearer '+g.token,Accept:'application/vnd.github.raw+json'},cache:'no-store'}); if(ro.ok) otxt=await ro.text(); }
       else { var rp=await fetch('data/overrides.enc.json',{cache:'no-store'}); if(rp.ok) otxt=await rp.text(); }
-      if(otxt){ var oj=JSON.parse(otxt), obase=await crypto.subtle.importKey('raw',_enc.encode(pw),'PBKDF2',false,['deriveKey']);
+      if(otxt){ var oj=JSON.parse(otxt), obase=await crypto.subtle.importKey('raw',_enc.encode(p.ovk||pw),'PBKDF2',false,['deriveKey']);
         var okey=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:_unb64(oj.salt),iterations:oj.iter},obase,{name:'AES-GCM',length:256},false,['decrypt']);
         var opt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(oj.iv)},okey,_unb64(oj.c)); var ov=JSON.parse(new TextDecoder().decode(opt)); if(ov&&ov.items) DATA.ov=ov; }
     }catch(e){}
