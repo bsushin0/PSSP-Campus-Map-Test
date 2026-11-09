@@ -95,7 +95,7 @@ function summarize(rec){
   const rq=rows.filter(r=>r.rq), rqBad=rq.filter(r=>!eff(r)), rqBad0=rq.filter(r=>!r.ok);
   const by={Building:[0,0],Landmark:[0,0],Street:[0,0]};
   rows.forEach(r=>{const t=by[typeOf(r)]; t[1]++; if(eff(r)) t[0]++;});
-  const need=Math.ceil(0.8*rows.length-1e-9), n=rows.length;
+  const need=Math.ceil(0.9*rows.length-1e-9), n=rows.length;
   const calcPass=n>0&&ok>=need&&!rqBad.length, pass0=n>0&&ok0>=need&&!rqBad0.length;
   const ovr=rec.ovr||null;
   return {total:n,ok,ok0,ans,rq,rqBad,by,pct:n?Math.round(ok/n*100):0,pct0:n?Math.round(ok0/n*100):0,need,calcPass,pass0,ovr,pass:ovr?ovr.res==='pass':calcPass,changed:rows.filter(r=>r.adm),log:rec.log||[]};
