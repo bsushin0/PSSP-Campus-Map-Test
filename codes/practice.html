@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PSSP Radio Codes Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/dts.css">
+<style>
+.code{font:700 clamp(2.4rem,9vw,4rem)/1.05 var(--mono);overflow-wrap:anywhere;padding:6px 0}
+.fb{padding:10px 12px;border-left:4px solid;font-size:.95rem}
+.fb.ok{border-color:var(--ok);background:var(--okbg);color:var(--ink)}
+.fb.no{border-color:var(--bad);background:var(--badbg);color:var(--ink)}
+.fb.sh{border-color:var(--gold);background:var(--bg);color:var(--ink)}
+.tally{display:flex;gap:22px;flex-wrap:wrap}
+.tally div{display:flex;flex-direction:column}
+.tally b{font:700 1.8rem/1 var(--display)}
+.tally span{font:600 .68rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th{font:600 .68rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);text-align:left;padding:6px 8px;border-bottom:2px solid var(--ink2)}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.c{font:700 .95rem var(--mono);white-space:nowrap}
+.seg{display:flex;gap:0;flex-wrap:wrap}
+.seg button{border-right-width:0}.seg button:last-child{border-right-width:1.5px}
+.seg button[aria-pressed=false]{background:transparent;color:var(--ink)}
+</style>
+</head>
+<body>
+<main>
+<p class="org">Purdue Student Safety Patrol &middot; Practice</p>
+<h1>Radio Codes Practice</h1>
+<div class="banner">This is practice, not the test. Nothing is graded or saved. <a href="../#practice">Back to practice home</a></div>
+
+<section id="setup">
+  <h2>What do you want to practice?</h2>
+  <div class="seg" role="group" aria-label="Which codes">
+    <button type="button" data-set="all" aria-pressed="true">Everything</button>
+    <button type="button" data-set="10-code" aria-pressed="false">10-codes</button>
+    <button type="button" data-set="signal" aria-pressed="false">Signals</button>
+  </div>
+  <p id="setNote" class="note"></p>
+  <div class="row"><button type="button" id="go">Start practice</button><button type="button" class="alt" id="list">Show the full list</button></div>
+  <p class="err" id="setErr" role="alert"></p>
+</section>
+
+<section id="quiz" hidden>
+  <div class="tally" id="tally"></div>
+  <div class="tag" id="qTag"></div>
+  <div class="code" id="qCode"></div>
+  <div><label for="ans">What does it mean?</label><input type="text" id="ans" autocomplete="off" spellcheck="false"></div>
+  <div class="fb" id="fb" hidden role="status"></div>
+  <div class="row">
+    <button type="button" id="check">Check</button>
+    <button type="button" class="alt" id="reveal">Show the answer</button>
+    <button type="button" id="next" hidden>Next</button>
+    <button type="button" class="alt" id="stop">Finish practice</button>
+  </div>
+</section>
+
+<section id="done" hidden>
+  <h2 id="doneT">Practice summary</h2>
+  <div class="tally" id="doneTally"></div>
+  <div id="missWrap"><p class="tag">Review these</p><table><thead><tr><th>Code</th><th>Meaning</th><th>You typed</th></tr></thead><tbody id="missRows"></tbody></table></div>
+  <div class="row"><button type="button" id="again">Practice again</button><button type="button" class="alt" id="againMissed">Practice the missed ones</button><a class="btn alt" href="../#practice">Practice home</a></div>
+</section>
+
+<section id="full" hidden>
+  <div class="row" style="justify-content:space-between"><h2>Full list</h2><button type="button" class="alt" id="fullBack">Back</button></div>
+  <table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody id="fullRows"></tbody></table>
+</section>
+</main>
+
+<script src="../shared/dts.js"></script>
+<script src="../shared/codes-grade.js"></script>
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s);};
+  var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var ITEMS=[], SET='all', order=[], cur=0, done=false, right=0, wrong=0, shown=0, missed=[];
+  function show(id){ ['setup','quiz','done','full'].forEach(function(x){ $('#'+x).hidden=(x!==id); }); window.scrollTo(0,0); }
+  function pool(){ return ITEMS.map(function(_,i){return i;}).filter(function(i){ return SET==='all'||ITEMS[i].k===SET; }); }
+  function note(){ $('#setNote').textContent=pool().length+' codes, in a random order.'; }
+  [].forEach.call(document.querySelectorAll('.seg button'),function(b){ b.onclick=function(){ SET=b.dataset.set; [].forEach.call(document.querySelectorAll('.seg button'),function(x){ x.setAttribute('aria-pressed',x===b?'true':'false'); }); note(); }; });
+
+  function start(list){ order=CODES.shuffle(list.slice()); cur=0; right=0; wrong=0; shown=0; missed=[]; draw(); show('quiz'); $('#ans').focus(); }
+  function tally(el){ el.innerHTML='<div><b>'+(cur+(done?1:0))+' / '+order.length+'</b><span>Done</span></div><div><b>'+right+'</b><span>Right</span></div><div><b>'+wrong+'</b><span>Wrong</span></div><div><b>'+shown+'</b><span>Shown</span></div>'; }
+  function draw(){
+    var it=ITEMS[order[cur]]; done=false;
+    $('#qTag').textContent=it.k==='signal'?'Signal':'10-code'; $('#qCode').textContent=it.code;
+    $('#ans').value=''; $('#ans').disabled=false; $('#fb').hidden=true;
+    $('#check').hidden=false; $('#reveal').hidden=false; $('#next').hidden=true; tally($('#tally'));
+  }
+  function settle(kind,given){
+    var it=ITEMS[order[cur]], fb=$('#fb'); done=true; fb.hidden=false; $('#ans').disabled=true;
+    if(kind==='ok'){ right++; fb.className='fb ok'; fb.innerHTML='<b>Correct.</b> '+esc(it.code)+' is '+esc(it.a)+'.'; }
+    else if(kind==='no'){ wrong++; missed.push({i:order[cur],g:given}); fb.className='fb no'; fb.innerHTML='<b>Not quite.</b> '+esc(it.code)+' is <b>'+esc(it.a)+'</b>.'; }
+    else { shown++; missed.push({i:order[cur],g:''}); fb.className='fb sh'; fb.innerHTML=esc(it.code)+' is <b>'+esc(it.a)+'</b>.'; }
+    $('#check').hidden=true; $('#reveal').hidden=true; $('#next').hidden=false; $('#next').textContent=(cur===order.length-1)?'See summary':'Next'; tally($('#tally')); $('#next').focus();
+  }
+  $('#check').onclick=function(){ var g=$('#ans').value; if(!g.trim()){ $('#ans').focus(); return; } settle(CODES.isRight(ITEMS[order[cur]],g)?'ok':'no',g.trim()); };
+  $('#reveal').onclick=function(){ settle('sh',''); };
+  $('#ans').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('#check').click(); } });
+  $('#next').onclick=function(){ if(cur<order.length-1){ cur++; draw(); $('#ans').focus(); } else finish(); };
+  $('#stop').onclick=finish;
+  function finish(){
+    var n=right+wrong+shown;
+    $('#doneTally').innerHTML='<div><b>'+n+'</b><span>Practiced</span></div><div><b>'+right+'</b><span>Right</span></div><div><b>'+wrong+'</b><span>Wrong</span></div><div><b>'+shown+'</b><span>Shown</span></div>';
+    $('#missWrap').hidden=!missed.length; $('#againMissed').hidden=!missed.length;
+    $('#missRows').innerHTML=missed.map(function(m){ var it=ITEMS[m.i]; return '<tr><td class="c">'+esc(it.code)+'</td><td>'+esc(it.a)+'</td><td>'+(m.g?esc(m.g):'<em>shown</em>')+'</td></tr>'; }).join('');
+    show('done');
+  }
+  $('#go').onclick=function(){ start(pool()); };
+  $('#again').onclick=function(){ show('setup'); };
+  $('#againMissed').onclick=function(){ start(missed.map(function(m){return m.i;})); };
+  $('#list').onclick=function(){ $('#fullRows').innerHTML=ITEMS.map(function(it){ return '<tr><td class="c">'+esc(it.code)+'</td><td>'+esc(it.a)+'</td></tr>'; }).join(''); show('full'); };
+  $('#fullBack').onclick=function(){ show('setup'); };
+
+  CODES.load(DTS.ROOT).then(function(j){ ITEMS=j.items; note(); }).catch(function(e){ $('#setErr').textContent='The codes list could not be loaded: '+((e&&e.message)||e); $('#go').disabled=true; $('#list').disabled=true; });
+})();
+</script>
+</body>
+</html>

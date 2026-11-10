@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PSSP Radio Codes Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/dts.css">
+</head>
+<body>
+<main class="wide">
+<p class="org">Purdue Student Safety Patrol &middot; Admin</p>
+<h1>Radio Codes Setup</h1>
+
+<section id="signin">
+  <h2>Admin sign-in</h2>
+  <p>Enter the admin passcode, your full name and your SP number. Your name and SP number are recorded with every save.</p>
+  <form id="sF" autocomplete="off" style="display:flex;flex-direction:column;gap:14px">
+    <div><label for="sP">Admin passcode</label><input type="password" id="sP" autocomplete="current-password"></div>
+    <div class="row">
+      <div class="grow"><label for="sN">Full name</label><input type="text" id="sN" autocomplete="off" placeholder="First and last name"></div>
+      <div class="grow"><label for="sS">SP number</label><input type="text" id="sS" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div>
+    </div>
+    <p class="err" id="sErr" role="alert"></p>
+    <div class="row"><button type="submit" id="sB">Sign in</button><a class="btn alt" href="../#testing">Testing home</a></div>
+  </form>
+</section>
+
+<section id="edit" hidden>
+  <h2>The codes list</h2>
+  <p>One code per line, four parts separated by <b>|</b> : kind, code, correct meaning, other accepted answers (separated by <b>;</b>, optional). Kind is <b>10-code</b> or <b>signal</b>. Answers are not case sensitive, punctuation is ignored, and a small typo is forgiven.</p>
+  <textarea id="txt" spellcheck="false" aria-label="Codes list"></textarea>
+  <div class="row">
+    <div style="flex:0 0 220px"><label for="mw">Wrong answers allowed</label><input type="number" id="mw" min="0" max="20" step="1"></div>
+    <label style="display:flex;gap:8px;align-items:center;margin:0;text-transform:none;letter-spacing:0;font:inherit;color:var(--ink)"><input type="checkbox" id="sh"> Mix the order each time</label>
+  </div>
+  <div class="banner">The offline copy in SharePoint (<b>PSSP-Radio-Codes-Test.html</b>) keeps its own list. After you save here, make the same change in that file and archive the old one, as the admin guide describes.</div>
+  <p class="err" id="eErr" role="alert"></p>
+  <div class="row"><button type="button" id="save">Save</button><button type="button" class="alt" id="check">Check the list</button><a class="btn alt" href="../#testing">Testing home</a><span class="note" id="eMsg" role="status"></span></div>
+</section>
+</main>
+
+<script src="../shared/dts.js"></script>
+<script src="../shared/codes-grade.js"></script>
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s);};
+  var P=null, WHO='';
+  function toText(items){ return items.map(function(i){ return [i.k,i.code,i.a,(i.alt||[]).join('; ')].join(' | '); }).join('\n'); }
+  function parse(){
+    var items=[], seen={}, lines=$('#txt').value.split(/\r?\n/);
+    for(var n=0;n<lines.length;n++){
+      var ln=lines[n].trim(); if(!ln) continue;
+      var p=ln.split('|').map(function(x){return x.trim();});
+      if(p.length<3||p.length>4) throw new Error('Line '+(n+1)+' needs 3 or 4 parts separated by | : '+ln);
+      var k=p[0].toLowerCase(); if(k!=='10-code'&&k!=='signal') throw new Error('Line '+(n+1)+': kind must be 10-code or signal.');
+      if(!p[1]||!p[2]) throw new Error('Line '+(n+1)+': the code and its meaning cannot be empty.');
+      if(seen[p[1].toLowerCase()]) throw new Error('Line '+(n+1)+': '+p[1]+' is on the list twice.'); seen[p[1].toLowerCase()]=1;
+      items.push({k:k,code:p[1],a:p[2],alt:(p[3]||'').split(';').map(function(x){return x.trim();}).filter(Boolean)});
+    }
+    if(!items.length) throw new Error('The list is empty.');
+    var mw=parseInt($('#mw').value,10); if(!(mw>=0)||mw>=items.length) throw new Error('Wrong answers allowed must be 0 or more, and less than the number of codes.');
+    return {maxWrong:mw,shuffle:$('#sh').checked,items:items};
+  }
+  function fileText(d){ return '{\n  "maxWrong": '+d.maxWrong+',\n  "shuffle": '+(d.shuffle?'true':'false')+',\n  "items": [\n'+d.items.map(function(i){ return '    '+JSON.stringify(i); }).join(',\n')+'\n  ]\n}\n'; }
+
+  $('#sF').addEventListener('submit',async function(e){
+    e.preventDefault(); var m=$('#sErr'); m.textContent='Signing in…'; $('#sB').disabled=true;
+    try{
+      var nm=$('#sN').value.trim().replace(/\s+/g,' '), sp=$('#sS').value.trim().replace(/^sp[\s#.\-]*/i,'');
+      if(nm.split(' ').length<2) throw new Error('Enter your full name (first and last).');
+      if(!/^[0-9]+$/.test(sp)) throw new Error('Enter your SP number (digits only).');
+      P=await DTS.openPrivate($('#sP').value,true);
+      if(Array.isArray(P.admins)&&P.admins.indexOf(+sp)<0) throw new Error('SP '+sp+' is not on the admin list.');
+      WHO=nm+', SP '+sp;
+      var j=await CODES.load(DTS.ROOT);
+      $('#txt').value=toText(j.items); $('#mw').value=(typeof j.maxWrong==='number')?j.maxWrong:2; $('#sh').checked=j.shuffle!==false;
+      $('#sP').value=''; m.textContent=''; $('#signin').hidden=true; $('#edit').hidden=false;
+      if(!(P.gh&&P.gh.token)) $('#eMsg').textContent='Autosave is off, so Save will download the file for you to upload to the data folder.';
+    }catch(er){ m.textContent=(er&&er.message)||String(er); }
+    $('#sB').disabled=false;
+  });
+  $('#check').onclick=function(){ try{ var d=parse(); $('#eErr').textContent=''; $('#eMsg').textContent='The list is fine: '+d.items.length+' codes, pass with no more than '+d.maxWrong+' wrong.'; }catch(er){ $('#eMsg').textContent=''; $('#eErr').textContent=er.message; } };
+  $('#save').onclick=async function(){
+    var d; try{ d=parse(); }catch(er){ $('#eMsg').textContent=''; $('#eErr').textContent=er.message; return; }
+    $('#eErr').textContent=''; $('#eMsg').textContent='Saving…'; this.disabled=true; var txt=fileText(d);
+    try{
+      if(P.gh&&P.gh.token){ await DTS.ghPut(P.gh,'data/codes.json',txt,'Update radio codes list ('+WHO+')'); $('#eMsg').textContent='Saved'+(DTS.isDev?' to the dev branch':'')+'. The test and practice pages pick it up within a minute or two. Remember the offline copy.'; }
+      else { var u=URL.createObjectURL(new Blob([txt],{type:'application/json'})), a=document.createElement('a'); a.href=u; a.download='codes.json'; document.body.appendChild(a); a.click(); a.remove(); $('#eMsg').textContent='Downloaded codes.json. Upload it to the data folder in the repository.'; }
+    }catch(er){ $('#eMsg').textContent=''; $('#eErr').textContent='Could not save: '+((er&&er.message)||er); }
+    this.disabled=false;
+  };
+})();
+</script>
+</body>
+</html>

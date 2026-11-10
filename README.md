@@ -1,3 +1,36 @@
+# PSSP Digital Testing Site
+
+> **This is the `dev` branch.** It is a preview of the combined testing site and is not the live site. The live site is served from `main` and is unchanged.
+
+One site for Purdue Student Safety Patrol testing and practice.
+
+- **Testing** (admins): an admin unlocks once on the home page with the test passcode, their full name and SP number, enters the SP being tested, then starts a test. The unlock ends after 60 minutes with no activity, when the tab closes, or on Lock.
+- **Practice** (every SP, no login): campus map practice, radio codes practice, and links to the SOP and Common Situations in SharePoint.
+
+```
+index.html            home page: Testing or Practice
+map/index.html        Campus Map Test            (was index.html)
+map/practice.html     campus map practice        (was practice.html)
+map/admin.html        map test setup             (was admin.html)
+codes/index.html      Radio Codes Test
+codes/practice.html   radio codes practice
+codes/setup.html      edit the codes list (admin passcode)
+vault.html            where admins read saved results
+shared/               unlock, session and theme used by the pages above
+data/codes.json       the radio codes list
+data/study-links.json the SharePoint links on the Practice page
+data/, database/      encrypted map settings and saved results, as before
+practice.html, admin.html   forward old links to map/
+```
+
+Still to come: SOP test, Situations test, combined Refresher. The offline `PSSP-Radio-Codes-Test.html` in SharePoint stays as the fail-safe and keeps its own codes list.
+
+Preview copies (any address other than the live site) show a "Preview copy" banner and save results and setup changes to the `dev` branch only.
+
+Everything below describes the Campus Map Test, which now lives under `map/`.
+
+---
+
 # PSSP Campus Map Test
 
 This is the map test for Purdue Student Safety Patrol. You click a building, street or landmark on the map and type its name or abbreviation. The test is graded in your browser.
