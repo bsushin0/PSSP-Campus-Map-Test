@@ -263,10 +263,11 @@ a.lnk{display:inline-block}
   #blist .bm{font-size:7.2pt; margin:3px 0 6px; color:#000}
   #blist h2{font:700 8.6pt/1 system-ui,Arial,sans-serif; text-transform:uppercase; letter-spacing:.06em; margin:8px 0 3px; padding-bottom:2px; border-bottom:1px solid #000; break-after:avoid}
   #blist ul{list-style:none; margin:0; padding:0; columns:3; column-gap:14px}
-  #blist li{break-inside:avoid; display:grid; grid-template-columns:9px 40px 1fr; gap:0 3px; padding:.6px 0; border-bottom:.5px dotted #999}
+  #blist li{break-inside:avoid; display:grid; grid-template-columns:17px 9px 40px 1fr; gap:0 3px; padding:.6px 0; border-bottom:.5px dotted #999}
   #blist li b{font:700 7.4pt/1.25 ui-monospace,Menlo,Consolas,monospace}
+  #blist li i{font:700 7.4pt/1.25 ui-monospace,Menlo,Consolas,monospace; font-style:normal; text-align:right}
   #blist ul.st{columns:2}
-  #blist ul.st li{grid-template-columns:9px 1fr}
+  #blist ul.st li{grid-template-columns:17px 9px 1fr}
   #blist .ho{color:#444}
   @page{size:letter;margin:10mm}
 }
@@ -471,7 +472,7 @@ body.placing #map{cursor:crosshair}
       </section>
       <section class="tool adm-only" id="admBL">
         <h3>Print the building list</h3>
-        <p class="hint">A compact list of every building and street with its name and abbreviation. Items that are required to pass are marked with a star. Items left out of the test are marked with a dagger. It uses the current settings.</p>
+        <p class="hint">A compact list of every building and street with its number, name and abbreviation, followed by a numbered map of the campus: an overview and zoomed detail maps. The number on the map matches the number in the list, so SPs can find a place either way. Items that are required to pass are marked with a star (a dark badge on the maps). Items left out of the test are marked with a dagger. It uses the current settings.</p>
         <div class="row"><button type="button" class="btn" id="blPrint">Print building list</button></div>
         <p class="muted" id="blMsg" role="status"></p>
       </section>
@@ -1450,17 +1451,20 @@ $('#cfgReset').onclick=()=>{ const c=Object.assign({},OV.cfg); delete c.ref; del
 $('#blPrint').onclick=()=>{
   const bl=[], st=[]; items.forEach(it=>{ (it.kind==='b'?bl:st).push(it); });
   const mark=it=>`<span>${it.rq?'&#9733;':''}</span>`;
-  const row=(it,short)=>`<li class="${it.ex?'ho':''}">${mark(it)}${short?'':'<b>'+(/^[A-Z0-9&-]{1,7}$/.test(String(it.code))?esc(it.code):'&ndash;')+'</b>'}<span>${esc(it.name)}${it.ex?' &dagger;':''}</span></li>`;
+  const row=(it,short)=>`<li class="${it.ex?'ho':''}"><i>${it._n}</i>${mark(it)}${short?'':'<b>'+(/^[A-Z0-9&-]{1,7}$/.test(String(it.code))?esc(it.code):'&ndash;')+'</b>'}<span>${esc(it.name)}${it.ex?' &dagger;':''}</span></li>`;
   const nR=items.filter(i=>i.rq).length, nH=items.filter(i=>i.ex).length;
   const d=new Date().toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
   const sorted=bl.slice().sort((a,b)=>String(a.code).localeCompare(String(b.code)));
   const ssorted=st.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  /* the number in the list is the number on the maps */
+  let n=0; sorted.forEach(it=>{ it._n=++n; }); ssorted.forEach(it=>{ it._n=++n; });
+  let maps=''; try{ maps=window.PSSPMapPrint?window.PSSPMapPrint.build({data:DATA,items:items,date:d}):''; }catch(e){ maps=''; }
   let el=$('#blist'); if(!el){ el=document.createElement('div'); el.id='blist'; document.body.appendChild(el); }
-  el.innerHTML=`<h1>PSSP Campus Map Test: building and street list</h1><div class="bm">Printed ${esc(d)} &middot; ${bl.length} buildings and places, ${st.length} streets &middot; &#9733; required to pass (${nR}) &middot; &dagger; left out of the test (${nH}) &middot; Buildings are listed by abbreviation; a dash means the place has no abbreviation.</div><h2>Buildings and places</h2><ul>${sorted.map(it=>row(it,false)).join('')}</ul><h2>Streets</h2><ul class="st">${ssorted.map(it=>row(it,true)).join('')}</ul>`;
+  el.innerHTML=`<div class="bl-list"><h1>PSSP Campus Map Test: building and street list</h1><div class="bm">Printed ${esc(d)} &middot; ${bl.length} buildings and places, ${st.length} streets &middot; &#9733; required to pass (${nR}) &middot; &dagger; left out of the test (${nH}) &middot; Buildings are listed by abbreviation; a dash means the place has no abbreviation. The number in front of each item is its number on the maps that follow.</div><h2>Buildings and places</h2><ul>${sorted.map(it=>row(it,false)).join('')}</ul><h2>Streets</h2><ul class="st">${ssorted.map(it=>row(it,true)).join('')}</ul></div>${maps}`;
   document.body.classList.add('printing-bl');
   const done=()=>{ document.body.classList.remove('printing-bl'); window.removeEventListener('afterprint',done); };
   window.addEventListener('afterprint',done);
-  try{ window.print(); $('#blMsg').textContent=''; }catch(e){ done(); $('#blMsg').textContent='Printing is blocked here. Open the admin page directly in your browser and try again.'; }
+  try{ window.print(); $('#blMsg').textContent=maps?'':'The numbered maps could not be added. Reload the page and try again.'; }catch(e){ done(); $('#blMsg').textContent='Printing is blocked here. Open the admin page directly in your browser and try again.'; }
 };
 
 /* ----- compare a new map list with the buildings in the test ----- */
@@ -1913,7 +1917,7 @@ $('#unlF').addEventListener('submit',async function(e){
 $('#unlP').focus();
 })();
 </script>
-<style>.stats,#hDir,#hWB,#cover{display:none!important}</style><script src="../shared/dts.js"></script>
+<style>.stats,#hDir,#hWB,#cover{display:none!important}</style><script src="../shared/dts.js"></script><script src="../shared/map-print.js"></script>
 <script>
 (function(){
   /* preview copies (any address other than the live site) save to the dev branch, never to main */
