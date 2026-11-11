@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PSSP Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/dts.css">
+<style>
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:12px}
+.ac{border:2px solid var(--ink);padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg);text-decoration:none;color:var(--ink)}
+.ac b{font:700 1.4rem/1.05 var(--display);text-transform:uppercase}
+.ac span{font-size:.9rem;color:var(--ink2)}
+.ac .st{font:600 .65rem var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.ac .st.warn{color:var(--bad)}.ac .st.good{color:var(--ok)}
+a.ac:hover,a.ac:focus-visible{border-color:var(--gold)}
+</style>
+</head>
+<body>
+<main class="wide">
+<p class="org">Purdue Student Safety Patrol &middot; Admin</p>
+<h1>Admin Home</h1>
+<section id="gate" hidden></section>
+
+<section id="hub" hidden>
+  <div class="row" style="justify-content:space-between"><div class="who"><div><span>Signed in</span><b id="who"></b></div></div><button type="button" class="alt" id="lock">Lock admin</button></div>
+
+  <h2>Tests</h2>
+  <div class="cards">
+    <a class="ac" href="../map/admin.html"><em class="tag">Campus map</em><b>Map test setup</b><span>Buildings, streets, overrides, required items, print the building list.</span></a>
+    <a class="ac" href="../codes/setup.html"><em class="tag">Radio codes</em><b>Codes setup</b><span>Edit the codes list and the number of wrong answers allowed.</span></a>
+    <a class="ac" href="../sop/setup.html"><em class="tag">SOP</em><b>SOP setup</b><span id="sopS">Loading…</span></a>
+    <a class="ac" href="../situations/setup.html"><em class="tag">Situations</em><b>Situations setup</b><span id="sitS">Loading…</span></a>
+  </div>
+
+  <h2>Results and running tests</h2>
+  <div class="cards">
+    <a class="ac" href="../vault.html"><em class="tag">Results</em><b>Results vault</b><span>Read saved results.</span></a>
+    <a class="ac" href="../#testing"><em class="tag">Testing</em><b>Testing home</b><span>Unlock testing, enter the SP, and start a test.</span></a>
+    <a class="ac" href="../#practice"><em class="tag">Open to every SP</em><b>Practice home</b><span>What SPs see. No sign-in.</span></a>
+  </div>
+
+  <h2>Site status</h2>
+  <div class="cards" id="status"></div>
+
+  <h2>Study links</h2>
+  <p>Where the Practice page sends SPs to read the SOP and Common Situations. These open SharePoint, so only people signed in with a Purdue account can read them.</p>
+  <div><label for="lSop">SOP link</label><input type="url" id="lSop" autocomplete="off"></div>
+  <div><label for="lSit">Common Situations link</label><input type="url" id="lSit" autocomplete="off"></div>
+  <p class="err" id="lErr" role="alert"></p>
+  <div class="row"><button type="button" id="lSave">Save links</button><span class="note" id="lMsg" role="status"></span></div>
+</section>
+</main>
+
+<script src="../shared/dts.js"></script>
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s);};
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var CTX=null, LINKS={};
+  DTS.adminGate($('#gate'),function(ctx){ CTX=ctx; $('#hub').hidden=false; $('#who').textContent=ctx.who; load(); });
+  $('#lock').onclick=function(){ DTS.adminLock(); location.reload(); };
+
+  function card(t,v,cls){ return '<div class="ac"><em class="tag">'+esc(t)+'</em><b style="font-size:1.1rem">'+esc(v)+'</b>'+(cls?'':'')+'</div>'; }
+  function load(){
+    var st=[], p=CTX.p;
+    st.push(['Autosave',(p.gh&&p.gh.token)?'On: saves go straight to the repository'+(DTS.isDev?' (dev branch)':''):'Off: saves download a file to upload by hand']);
+    st.push(['Admins on the list',Array.isArray(p.admins)?String(p.admins.length)+' SP number'+(p.admins.length===1?'':'s'):'Not restricted']);
+    DTS.readData('data/sop-bank.enc.json',CTX.dk).then(function(d){
+      var q=(d&&d.questions)||[], c={approved:0,draft:0,review:0,retired:0}; q.forEach(function(x){ c[x.status]=(c[x.status]||0)+1; });
+      var need=(d&&d.settings&&d.settings.count)||15;
+      $('#sopS').textContent=c.approved+' approved, '+c.draft+' draft, '+c.review+' need review. '+(c.approved>=need?'Ready for tests.':'A test needs '+need+' approved.');
+      st.push(['SOP bank',(d&&d.sopVersion)||'no version set']); st.push(['SOP last checked',(d&&d.checkedAt)?new Date(d.checkedAt).toLocaleDateString():'never']);
+    }).catch(function(){ $('#sopS').textContent='The bank could not be opened.'; }).then(function(){
+      return DTS.readData('data/situations.enc.json',CTX.dk).then(function(d){
+        var t=(d&&d.topics)||[], dr=t.filter(function(x){return x.draft;}).length;
+        $('#sitS').textContent=t.length+' topics, '+(d&&d.scenarios||3)+' per test.'+(dr?' '+dr+' with key points not confirmed.':'');
+        if(dr) st.push(['Needs your attention',dr+' situation topic'+(dr===1?'':'s')+' with unconfirmed key points']);
+      }).catch(function(){ $('#sitS').textContent='Not set up yet.'; });
+    }).then(function(){ $('#status').innerHTML=st.map(function(r){ return '<div class="ac"><em class="tag">'+esc(r[0])+'</em><b style="font-size:1.05rem;text-transform:none;font-family:inherit;font-weight:600">'+esc(r[1])+'</b></div>'; }).join(''); });
+    fetch('../data/study-links.json',{cache:'no-store'}).then(function(r){ return r.ok?r.json():{}; }).then(function(j){ LINKS=j||{}; $('#lSop').value=LINKS.sop||''; $('#lSit').value=LINKS.situations||''; }).catch(function(){});
+  }
+  $('#lSave').onclick=function(){
+    var e=$('#lErr'), m=$('#lMsg'); e.textContent=''; m.textContent='';
+    var a=$('#lSop').value.trim(), b=$('#lSit').value.trim();
+    [a,b].forEach(function(u){ if(u&&!/^https:\/\//i.test(u)) e.textContent='Links must start with https://'; }); if(e.textContent) return;
+    var out=Object.assign({},LINKS,{sop:a,situations:b}); var btn=$('#lSave'); btn.disabled=true; m.textContent='Saving…';
+    DTS.saveFile(CTX,'data/study-links.json',JSON.stringify(out,null,2)+'\n','Update study links').then(function(msg){ LINKS=out; m.textContent=msg; }).catch(function(x){ m.textContent=''; e.textContent=(x&&x.message)||String(x); }).then(function(){ btn.disabled=false; });
+  };
+})();
+</script>
+</body>
+</html>

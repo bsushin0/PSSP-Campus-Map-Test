@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PSSP Situations Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/dts.css">
+<style>
+.tp{border:2px solid var(--ink);padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.tp textarea{min-height:120px;white-space:pre-wrap;font:inherit}
+.tp.dr{border-color:var(--gold)}
+.mini{width:6rem}
+.cb{display:flex;gap:8px;align-items:center;margin:0;text-transform:none;letter-spacing:0;font:inherit;color:var(--ink)}
+textarea.lst{min-height:80px;white-space:pre-wrap;font:inherit}
+</style>
+</head>
+<body>
+<main class="wide">
+<p class="org">Purdue Student Safety Patrol &middot; Admin</p>
+<h1>Situations Setup</h1>
+<section id="gate" hidden></section>
+
+<section id="edit" hidden>
+  <h2>How the test runs</h2>
+  <div class="row">
+    <div style="flex:0 0 220px"><label for="sn">Scenarios per test</label><input type="number" id="sn" min="1" max="8" step="1"></div>
+  </div>
+  <p class="note">The evaluator runs and judges each scenario. The overall result is a pass when a majority of scenarios pass. The evaluator may request one more scenario.</p>
+</section>
+
+<section id="topics" hidden>
+  <h2>Topics</h2>
+  <p>Each topic is one kind of situation. A topic marked <b>Key points not confirmed</b> shows the evaluator a warning. Untick it once you have checked the list against the training. The checklist is the answer key the evaluator sees: one item per line.</p>
+  <div id="tl" style="display:flex;flex-direction:column;gap:14px"></div>
+  <div class="row"><button type="button" class="alt" id="addT">Add a topic</button></div>
+</section>
+
+<section id="gen" hidden>
+  <h2>Checks on every scenario</h2>
+  <p>One per line. These appear under every topic's checklist.</p>
+  <textarea id="gtx" class="lst" spellcheck="true"></textarea>
+</section>
+
+<section id="lists" hidden>
+  <h2>Details the site picks from</h2>
+  <p>When a scenario is drawn, the site picks a place from the map test's buildings and streets, and describes the individuals and vehicles from these lists. One entry per line.</p>
+  <div class="row">
+    <div class="grow"><label for="L_colors">Clothing colors</label><textarea id="L_colors" class="lst"></textarea></div>
+    <div class="grow"><label for="L_tops">Tops</label><textarea id="L_tops" class="lst"></textarea></div>
+    <div class="grow"><label for="L_bottoms">Bottoms</label><textarea id="L_bottoms" class="lst"></textarea></div>
+  </div>
+  <div class="row">
+    <div class="grow"><label for="L_carry">Carrying</label><textarea id="L_carry" class="lst"></textarea></div>
+    <div class="grow"><label for="L_vehicleColors">Vehicle colors</label><textarea id="L_vehicleColors" class="lst"></textarea></div>
+    <div class="grow"><label for="L_vehicleKinds">Vehicle kinds</label><textarea id="L_vehicleKinds" class="lst"></textarea></div>
+  </div>
+  <div><label for="L_extraLocations">Extra places (not on the map test)</label><textarea id="L_extraLocations" class="lst"></textarea></div>
+  <p class="err" id="eErr" role="alert"></p>
+  <div class="row"><button type="button" id="save">Save</button><a class="btn alt" href="../admin/">Admin home</a><a class="btn alt" href="../#testing">Testing home</a><span class="note" id="eMsg" role="status"></span></div>
+</section>
+</main>
+
+<script src="../shared/dts.js"></script>
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s);};
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var CTX=null, D=null;
+  var LISTS=['colors','tops','bottoms','carry','vehicleColors','vehicleKinds','extraLocations'];
+  var lines=function(t){ return String(t||'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean); };
+
+  DTS.adminGate($('#gate'),function(ctx){
+    CTX=ctx;
+    DTS.readData('data/situations.enc.json',ctx.dk).then(function(d){
+      D=d||{v:1,scenarios:3,general:[],topics:[],lists:{}}; fill(); ['edit','topics','gen','lists'].forEach(function(i){ $('#'+i).hidden=false; });
+    }).catch(function(e){ $('#gate').hidden=false; $('#gate').innerHTML='<h2>Could not open the situations</h2><p class="err">'+esc(e.message||e)+'</p>'; });
+  });
+
+  function fill(){
+    $('#sn').value=D.scenarios||3; $('#gtx').value=(D.general||[]).join('\n');
+    LISTS.forEach(function(k){ $('#L_'+k).value=((D.lists&&D.lists[k])||[]).join('\n'); });
+    $('#tl').innerHTML=''; (D.topics||[]).forEach(function(t){ $('#tl').appendChild(card(t)); });
+  }
+  function card(t){
+    var d=document.createElement('div'); d.className='tp'+(t.draft?' dr':''); d.dataset.id=t.id||'';
+    d.innerHTML='<div class="row"><div class="grow"><label>Topic name</label><input type="text" class="f-name" value="'+esc(t.name)+'"></div>'
+      +'<div style="flex:0 0 auto"><label>People (min)</label><input type="number" class="mini f-pmin" min="0" max="10" value="'+((t.people||[1,1])[0])+'"></div>'
+      +'<div style="flex:0 0 auto"><label>People (max)</label><input type="number" class="mini f-pmax" min="0" max="10" value="'+((t.people||[1,1])[1])+'"></div>'
+      +'<div style="flex:0 0 auto"><label>Vehicles</label><input type="number" class="mini f-veh" min="0" max="5" value="'+(t.vehicles||0)+'"></div></div>'
+      +'<div><label>What the evaluator reads aloud as dispatch</label><textarea class="f-prompt" style="min-height:70px;white-space:pre-wrap;font:inherit">'+esc(t.prompt)+'</textarea></div>'
+      +'<div><label>Checklist: what a good response includes (one per line)</label><textarea class="f-cl">'+esc((t.checklist||[]).join('\n'))+'</textarea></div>'
+      +'<div class="row"><label class="cb"><input type="checkbox" class="f-dest"'+(t.dest?' checked':'')+'> Has a start and a destination (To and From)</label>'
+      +'<label class="cb"><input type="checkbox" class="f-draft"'+(t.draft?' checked':'')+'> Key points not confirmed</label>'
+      +'<button type="button" class="alt f-del" style="margin-left:auto">Delete topic</button></div>';
+    d.querySelector('.f-del').onclick=function(){ if(confirm('Delete the topic "'+(d.querySelector('.f-name').value||'untitled')+'"?')) d.remove(); };
+    return d;
+  }
+  $('#addT').onclick=function(){ var c=card({id:'',name:'',prompt:'',people:[1,1],vehicles:0,checklist:[]}); $('#tl').appendChild(c); c.querySelector('.f-name').focus(); };
+
+  function slug(s,used){ var b=s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'topic', id=b, n=2; while(used[id]) id=b+'-'+(n++); used[id]=1; return id; }
+  function collect(){
+    var out={v:1,scenarios:+$('#sn').value,general:lines($('#gtx').value),topics:[],lists:{}}, used={};
+    if(!(out.scenarios>=1)) throw new Error('Scenarios per test must be at least 1.');
+    [].forEach.call($('#tl').children,function(d,i){
+      var nm=d.querySelector('.f-name').value.trim(); if(!nm) throw new Error('Topic '+(i+1)+' needs a name.');
+      var pr=d.querySelector('.f-prompt').value.trim(); if(!pr) throw new Error('"'+nm+'" needs the dispatch text.');
+      var cl=lines(d.querySelector('.f-cl').value); if(!cl.length) throw new Error('"'+nm+'" needs at least one checklist item.');
+      var a=+d.querySelector('.f-pmin').value, b=+d.querySelector('.f-pmax').value; if(!(b>=a)) throw new Error('"'+nm+'": the maximum people cannot be below the minimum.');
+      var id=d.dataset.id; if(!id||used[id]) id=slug(nm,used); else used[id]=1;
+      var t={id:id,name:nm,prompt:pr,people:[a,b],vehicles:+d.querySelector('.f-veh').value||0,dest:d.querySelector('.f-dest').checked,draft:d.querySelector('.f-draft').checked,checklist:cl};
+      out.topics.push(t);
+    });
+    if(out.topics.length<out.scenarios) throw new Error('Add at least '+out.scenarios+' topics, one for each scenario in a test.');
+    LISTS.forEach(function(k){ out.lists[k]=lines($('#L_'+k).value); });
+    ['colors','tops','bottoms','carry'].forEach(function(k){ if(!out.lists[k].length) throw new Error('The '+k+' list cannot be empty.'); });
+    return out;
+  }
+  $('#save').onclick=function(){
+    var e=$('#eErr'), m=$('#eMsg'); e.textContent=''; m.textContent='';
+    var out; try{ out=collect(); }catch(x){ e.textContent=x.message; return; }
+    var b=$('#save'); b.disabled=true; m.textContent='Saving…';
+    DTS.sealData(CTX.dk,out).then(function(txt){ return DTS.saveFile(CTX,'data/situations.enc.json',txt,'Update situations'); })
+      .then(function(msg){ D=out; m.textContent=msg; fill(); }).catch(function(x){ m.textContent=''; e.textContent=(x&&x.message)||String(x); }).then(function(){ b.disabled=false; });
+  };
+})();
+</script>
+</body>
+</html>

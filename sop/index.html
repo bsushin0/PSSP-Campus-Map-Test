@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PSSP SOP Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/dts.css">
+<style>
+.qcard{border:2px solid var(--ink);padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.qcard .qt{font-size:1.15rem;line-height:1.4}
+.tfb{display:flex;gap:10px}.tfb button{flex:1;padding:14px;font-size:1.1rem}
+.tfb button.on{background:var(--ink);color:var(--bg)}
+.lin{display:flex;flex-direction:column;gap:8px}
+.prog{display:flex;gap:3px;flex-wrap:wrap}.prog i{width:22px;height:6px;background:var(--line)}.prog i.done{background:var(--ink2)}.prog i.cur{background:var(--gold)}
+.verdict{font:700 1.1rem var(--display);text-transform:uppercase;letter-spacing:.06em;padding:4px 12px;border:2px solid;display:inline-block}
+.verdict.pass{color:var(--ok)}.verdict.fail{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th{font:600 .68rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);text-align:left;padding:6px 8px;border-bottom:2px solid var(--ink2)}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.ok{color:var(--ok);font-weight:700}td.no{color:var(--bad);font-weight:700}
+.tagc{display:block;font:600 .62rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.rhead{display:none}
+.arv{border:2px solid var(--gold);padding:12px;display:flex;flex-direction:column;gap:10px}
+.sig{display:grid;grid-template-columns:minmax(0,24rem);margin-top:20px;break-inside:avoid}
+.sig .sv{min-height:30px;display:flex;align-items:flex-end;border-bottom:1px solid var(--ink);padding-bottom:3px;font-weight:600}
+.sig .lb{font:600 .65rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);padding-top:4px}
+.remind{border-left:4px solid var(--bad);padding:8px 12px;font-size:.92rem}
+@page{size:letter;margin:12mm}
+@media print{
+  body{background:#fff;color:#000;padding:0}main{max-width:none;gap:10px}
+  h1{color:#000;border-bottom:3px solid #000;font-size:1.6rem}
+  section{border:none;padding:0;background:#fff}
+  #locked,#cover,#run,.noprint,.banner{display:none!important}
+  .rhead{display:grid;grid-template-columns:repeat(3,auto);gap:4px 24px;justify-content:start;font-size:.95rem;margin-bottom:6px}
+  .rhead span{font:600 .65rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#333;display:block}
+  .verdict{border-color:#000;color:#000!important}
+  td.ok,td.no{color:#000}.sig .sv{border-color:#000;color:#000}
+  body.unrev #report{display:none!important}
+  body.unrev main::after{content:"Admin review required before this report can be printed.";font:700 1.2rem system-ui,sans-serif;color:#000}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>PSSP SOP Test</h1>
+
+<section id="locked" hidden>
+  <h2>Testing is locked</h2>
+  <p id="lockedMsg">An administrator unlocks testing on the home page before a test starts.</p>
+  <div class="row"><a class="btn" href="../#testing">Go to Testing home</a></div>
+</section>
+
+<section id="cover" hidden>
+  <h2>Before you start</h2>
+  <p id="facts"></p>
+  <p>You can go back and change an answer until you finish. There is no word bank. Answers are not case sensitive.</p>
+  <div class="row">
+    <div class="grow"><label for="nm">Full name</label><input type="text" id="nm" autocomplete="off" placeholder="First and last name"></div>
+    <div class="grow"><label for="sp">SP number</label><input type="text" id="sp" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div>
+  </div>
+  <p class="err" id="coverErr" role="alert"></p>
+  <div class="row"><button type="button" id="start">Start</button><a class="btn alt" href="../#testing">Testing home</a></div>
+</section>
+
+<section id="run" hidden>
+  <div class="prog" id="prog" aria-hidden="true"></div>
+  <div class="row" style="justify-content:space-between"><span class="tag" id="qOf"></span></div>
+  <div class="qcard"><div class="qt" id="qt"></div><div id="qin"></div></div>
+  <p class="err" id="runErr" role="alert"></p>
+  <div class="row"><button type="button" class="alt" id="prev">Back</button><button type="button" id="next">Next</button></div>
+</section>
+
+<section id="report" hidden>
+  <div class="rhead" id="rhead"></div>
+  <h2>SOP test report</h2>
+  <div class="row"><span class="verdict" id="rVerdict"></span><span id="rScore" class="tag"></span></div>
+  <div class="remind" id="rRemind" hidden>Not yet. This SP may retake the SOP test after 24 hours. Two attempts are allowed. The retake uses a different draw of questions.</div>
+  <div class="banner" id="rAuto" hidden></div>
+  <div class="banner" id="rRev" hidden></div>
+  <div class="scroll"><table>
+    <thead><tr><th></th><th>Question</th><th>Correct answer</th><th>Your answer</th><th class="noprint" id="thAct" hidden></th></tr></thead>
+    <tbody id="rRows"></tbody>
+  </table></div>
+  <div class="sig" id="rSig"></div>
+
+  <div class="arv noprint" id="arvAsk" hidden>
+    <p><b>Admin review required.</b> An admin has to check this result before it can be printed or downloaded. Confirm your full name and SP number to start.</p>
+    <div class="row"><div><label for="arvName">Admin full name</label><input type="text" id="arvName" autocomplete="off" placeholder="First and last name"></div>
+    <div><label for="arvSp">Admin SP number</label><input type="text" id="arvSp" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div></div>
+    <div class="row"><button type="button" id="arvGo">Start review</button><button type="button" class="alt" id="arvNo">Not now</button></div>
+    <p class="err" id="arvErr" role="alert"></p>
+  </div>
+  <div class="arv noprint" id="arvEdit" hidden>
+    <p><b>Admin review.</b> Check each part. Use the button on a row to mark it correct or wrong. The score changes as you go. Approving with no changes is fine.</p>
+    <div><label for="arvNote">Reason for the change (optional, shown on the report)</label><input type="text" id="arvNote" autocomplete="off" maxlength="140"></div>
+    <div class="row"><button type="button" id="arvSave">Approve review</button><button type="button" class="alt" id="arvCancel">Cancel</button><span class="tag" id="arvCount"></span></div>
+  </div>
+
+  <div class="row noprint" id="rBtns"><button type="button" id="print" disabled>Print report</button><button type="button" class="alt" id="dl" disabled>Download report file</button><button type="button" class="alt" id="arvOpen">Admin review</button><button type="button" class="alt" id="retake">Start over</button><a class="btn alt" href="../#testing">Testing home</a></div>
+  <p class="noprint" id="pHint">If Print report does nothing (some preview windows block printing), press Ctrl+P (Cmd+P on a Mac), or click Download report file and open that file in your browser to print it.</p>
+</section>
+</main>
+
+<script src="../shared/dts.js"></script>
+<script src="../shared/codes-grade.js"></script>
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s);};
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var SES=DTS.session(), B=null, Q=[], ANS=[], cur=0, who={}, PARTS=null, REV=null, EDIT=null, ARVNAME='', ARVSP='', FIN=false;
+  function fail(m){ $('#lockedMsg').textContent=m; $('#locked').hidden=false; }
+  function show(id){ ['cover','run','report'].forEach(function(x){ $('#'+x).hidden=(x!==id); }); window.scrollTo(0,0); }
+  function dstr(d){ return d.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
+  var HINT0=$('#pHint').textContent;
+
+  if(!SES){ fail('An administrator unlocks testing on the home page before a test starts.'); return; }
+  DTS.openBoth(SES.pw,false).then(function(o){
+    return DTS.readData('data/sop-bank.enc.json',o.dk).then(function(d){
+      var ok=((d&&d.questions)||[]).filter(function(q){return q.status==='approved';});
+      var need=(d&&d.settings&&d.settings.count)||15;
+      if(!d||ok.length<need) throw new Error('The SOP question bank has '+ok.length+' approved question'+(ok.length===1?'':'s')+' and needs at least '+need+'. An admin can approve more on SOP setup.');
+      B=d; boot(ok);
+    });
+  }).catch(function(e){ fail((e&&e.message)||String(e)); });
+
+  var POOL=[];
+  function boot(ok){
+    POOL=ok; var n=B.settings.count, w=B.settings.maxWrong;
+    $('#facts').textContent=n+' questions drawn at random from the current SOP'+(B.sopVersion?' ('+B.sopVersion+')':'')+'. Pass mark: no more than '+w+' wrong.';
+    if(SES.taker){ $('#nm').value=SES.taker.name||''; $('#sp').value=SES.taker.sp||''; }
+    show('cover');
+  }
+  $('#start').onclick=function(){
+    var nm=$('#nm').value.trim().replace(/\s+/g,' '), sp=$('#sp').value.trim().replace(/^sp[\s#.\-]*/i,''), e=$('#coverErr');
+    if(nm.split(' ').length<2){ e.textContent='Enter your full name (first and last).'; return; } if(!/^\d+$/.test(sp)){ e.textContent='Enter your SP number (digits only).'; return; }
+    e.textContent=''; DTS.setTaker&&DTS.setTaker(nm,sp); who={name:nm,sp:sp,when:new Date()};
+    Q=CODES.shuffle(POOL.slice()).slice(0,B.settings.count); ANS=Q.map(function(q){ return q.type==='list'?new Array(Math.max(q.need||q.key.length,1)).fill(''):''; });
+    cur=0; PARTS=null; REV=null; EDIT=null; FIN=false; document.body.classList.remove('unrev'); draw(); show('run');
+  };
+
+  function ltr(q){ return q.type==='list'?Math.max(q.need||(q.key||[]).length,1):1; }
+  function draw(){
+    var q=Q[cur], a=ANS[cur];
+    $('#qOf').textContent='Question '+(cur+1)+' of '+Q.length; $('#qt').textContent=q.q;
+    var h='';
+    if(q.type==='tf') h='<div class="tfb"><button type="button" class="alt'+(a==='true'?' on':'')+'" data-tf="true">True</button><button type="button" class="alt'+(a==='false'?' on':'')+'" data-tf="false">False</button></div>';
+    else if(q.type==='list'){ h='<div class="lin"><p class="note">Give '+a.length+' answer'+(a.length===1?'':'s')+'.</p>'+a.map(function(v,i){ return '<input type="text" data-li="'+i+'" value="'+esc(v)+'" autocomplete="off" aria-label="Answer '+(i+1)+'">'; }).join('')+'</div>'; }
+    else h='<input type="text" id="sa" value="'+esc(a)+'" autocomplete="off" aria-label="Your answer">';
+    $('#qin').innerHTML=h; $('#runErr').textContent='';
+    $('#prev').disabled=cur===0; $('#next').textContent=cur===Q.length-1?'Finish':'Next';
+    $('#prog').innerHTML=Q.map(function(_,i){ var done=Array.isArray(ANS[i])?ANS[i].some(Boolean):!!ANS[i]; return '<i class="'+(i===cur?'cur':(done?'done':''))+'"></i>'; }).join('');
+    var f=$('#qin input'); if(f) f.focus();
+  }
+  function keep(){
+    var q=Q[cur]; if(q.type==='list') [].forEach.call(document.querySelectorAll('[data-li]'),function(e){ ANS[cur][+e.dataset.li]=e.value; });
+    else if(q.type==='short') ANS[cur]=$('#sa').value;
+  }
+  $('#qin').addEventListener('click',function(e){ var b=e.target.closest('[data-tf]'); if(!b) return; ANS[cur]=b.dataset.tf; draw(); });
+  $('#qin').addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.tagName==='INPUT'){ e.preventDefault(); $('#next').click(); } });
+  $('#prev').onclick=function(){ keep(); if(cur>0){ cur--; draw(); } };
+  $('#next').onclick=function(){
+    keep();
+    if(cur<Q.length-1){ cur++; draw(); return; }
+    var blank=[]; Q.forEach(function(q,i){ var a=ANS[i]; if(Array.isArray(a)?!a.some(function(x){return x.trim();}):!String(a).trim()) blank.push(i+1); });
+    if(blank.length&&!confirm('No answer for question'+(blank.length>1?'s ':' ')+blank.join(', ')+'. Finish anyway? Blank answers count as wrong.')) return;
+    grade(); FIN=true; render(); gate(); show('report');
+  };
+
+  /* ----- grading: one mark per part ----- */
+  function grade(){
+    PARTS=[]; Q.forEach(function(q,i){
+      var a=ANS[i], n=ltr(q);
+      if(q.type==='tf'){ PARTS.push({qi:i,first:true,label:q.q,key:q.key===true||q.key==='true'?'True':'False',given:a==='true'?'True':a==='false'?'False':'',auto:a===String(q.key===true||q.key==='true')}); return; }
+      if(q.type==='short'){ PARTS.push({qi:i,first:true,label:q.q,key:q.key,given:a.trim(),auto:CODES.isRight({a:q.key,alt:q.accept||[]},a)}); return; }
+      var keys=(q.key||[]).map(function(k){ return typeof k==='string'?{a:k,alt:[]}:{a:k.a,alt:k.alt||[]}; }), used={}, m=0;
+      a.forEach(function(g){ for(var k=0;k<keys.length;k++){ if(!used[k]&&CODES.isRight(keys[k],g)){ used[k]=1; m++; break; } } });
+      m=Math.min(m,n);
+      for(var j=0;j<n;j++) PARTS.push({qi:i,first:j===0,label:q.q+(n>1?' (part '+(j+1)+' of '+n+')':''),key:j===0?keys.map(function(k){return k.a;}).join('; ')+(q.need&&q.need<keys.length?' (any '+q.need+')':''):'',given:j===0?a.filter(function(x){return x.trim();}).join('; '):'',auto:j<m});
+    });
+  }
+  function nowOk(p,k){ if(EDIT&&EDIT[k]!==undefined) return EDIT[k]; return p.ov!==undefined?p.ov:p.auto; }
+  function render(){
+    var right=0, changed=0, autoRight=0;
+    var rows=PARTS.map(function(p,k){
+      var ok=nowOk(p,k); if(ok) right++; if(p.auto) autoRight++; var diff=(p.ov!==undefined&&p.ov!==p.auto)||(EDIT&&EDIT[k]!==undefined&&EDIT[k]!==p.auto); if(diff&&!EDIT) changed++; else if(diff) changed++;
+      return '<tr><td class="'+(ok?'ok':'no')+'">'+(ok?'✓':'✗')+'</td><td>'+esc(p.label)+'</td><td>'+esc(p.key)+'</td><td>'+(p.given?esc(p.given):(p.first?'<em>no answer</em>':''))+(diff?'<span class="tagc">Changed by admin: marked '+(ok?'correct':'wrong')+'</span>':'')+'</td>'
+        +(EDIT?'<td class="noprint"><button type="button" class="alt" data-k="'+k+'">Mark '+(ok?'wrong':'correct')+'</button></td>':'')+'</tr>';
+    });
+    var N=PARTS.length, W=B.settings.maxWrong, pass=(N-right)<=W;
+    $('#rScore').textContent=right+' / '+N+' ('+Math.round(right/N*1000)/10+'%)';
+    var v=$('#rVerdict'); v.textContent=pass?'Pass':'Not yet'; v.className='verdict '+(pass?'pass':'fail'); $('#rRemind').hidden=pass;
+    $('#rRows').innerHTML=rows.join(''); $('#thAct').hidden=!EDIT;
+    var au=$('#rAuto'); if(changed){ au.hidden=false; au.textContent='Auto-graded score before admin changes: '+autoRight+' / '+N+(EDIT?'  (changes not saved yet)':''); } else au.hidden=true;
+    var rv=$('#rRev'); if(REV&&!EDIT){ rv.hidden=false; rv.innerHTML='<div><b>Reviewed by '+esc(REV.name)+', SP '+esc(REV.sp)+'</b> on '+esc(dstr(REV.when))+'. '+(changed?changed+' mark'+(changed===1?' was':'s were')+' changed.':'No marks were changed.')+'</div>'+(REV.note?'<div>Reason: '+esc(REV.note)+'</div>':''); } else rv.hidden=true;
+    $('#rhead').innerHTML='<div><span>Name</span>'+esc(who.name)+'</div><div><span>SP number</span>'+esc(who.sp)+'</div><div><span>Date</span>'+esc(dstr(who.when))+'</div><div><span>Pass mark</span>No more than '+W+' wrong of '+N+'</div><div><span>Test</span>SOP'+(B.sopVersion?' ('+esc(B.sopVersion)+')':'')+'</div>';
+    $('#rSig').innerHTML='<div><div class="sv">'+(REV?esc(REV.name)+', SP '+esc(REV.sp):'')+'</div><div class="lb">Evaluator name</div></div>';
+    if(EDIT) $('#arvCount').textContent=Object.keys(EDIT).filter(function(k){return EDIT[k]!==(PARTS[k].ov!==undefined?PARTS[k].ov:PARTS[k].auto);}).length+' change(s) waiting';
+  }
+
+  /* ----- admin review (required before printing) ----- */
+  function arvMode(m){ $('#arvAsk').hidden=m!=='ask'; $('#arvEdit').hidden=m!=='edit'; $('#rBtns').hidden=m!==''; $('#pHint').hidden=m!==''; }
+  function gate(){ var ok=!!REV; $('#print').disabled=!ok; $('#dl').disabled=!ok; document.body.classList.toggle('unrev',!ok); $('#pHint').textContent=ok?HINT0:'Print and download unlock after an admin reviews this result. Click Admin review.'; $('#arvOpen').textContent=ok?'Review again':'Admin review'; }
+  $('#arvOpen').onclick=function(){ $('#arvErr').textContent=''; arvMode('ask'); $('#arvName').focus(); };
+  $('#arvNo').onclick=function(){ arvMode(''); };
+  $('#arvName').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('#arvSp').focus(); } });
+  $('#arvSp').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('#arvGo').click(); } });
+  $('#arvGo').onclick=function(){
+    var nmv=$('#arvName').value.trim().replace(/\s+/g,' '); if(nmv.split(' ').length<2){ $('#arvErr').textContent='Enter your full name (first and last).'; return; }
+    var sp=$('#arvSp').value.trim().replace(/^sp[\s#.\-]*/i,''); if(!/^\d+$/.test(sp)){ $('#arvErr').textContent='Enter your SP number (digits only).'; return; }
+    ARVSP=sp; ARVNAME=nmv; EDIT={}; $('#arvNote').value=(REV&&REV.note)||''; arvMode('edit'); render();
+  };
+  $('#rRows').addEventListener('click',function(e){ var b=e.target.closest('[data-k]'); if(!b||!EDIT) return; var k=+b.dataset.k; EDIT[k]=!nowOk(PARTS[k],k); render(); });
+  $('#arvCancel').onclick=function(){ EDIT=null; arvMode(''); render(); gate(); };
+  $('#arvSave').onclick=function(){
+    PARTS.forEach(function(p,k){ if(EDIT[k]!==undefined){ p.ov=(EDIT[k]===p.auto)?undefined:EDIT[k]; } });
+    REV={name:ARVNAME,sp:ARVSP,when:new Date(),note:$('#arvNote').value.trim()}; EDIT=null; arvMode(''); render(); gate();
+  };
+
+  /* ----- print and file ----- */
+  $('#print').onclick=function(){ try{ window.print(); }catch(e){ $('#pHint').textContent='Printing is blocked here. Press Ctrl+P, or download the report file and open it in your browser.'; } };
+  $('#dl').onclick=function(){
+    var c=$('#report').cloneNode(true); [].forEach.call(c.querySelectorAll('.noprint,#arvAsk,#arvEdit'),function(n){ n.remove(); }); c.removeAttribute('hidden');
+    var css=document.querySelector('style').textContent;
+    var doc='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PSSP SOP Test Report - '+esc(who.name)+'</title><style>:root{--bg:#fff;--panel:#fff;--ink:#000;--ink2:#333;--line:#999;--gold:#E0A81E;--ok:#23804F;--bad:#B93B34;--display:"Arial Narrow",Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}body{font:15px/1.5 system-ui,sans-serif;max-width:900px;margin:20px auto;padding:0 16px}h1,h2{font-family:var(--display);text-transform:uppercase}'+css+'@media screen{.rhead{display:grid;grid-template-columns:repeat(3,auto);gap:4px 24px;justify-content:start}}</style></head><body><main><h1>PSSP SOP Test</h1><p class="noprint"><button type="button" onclick="window.print()">Print this report</button></p>'+c.outerHTML+'</main></body></html>';
+    var name='PSSP-SOP-Report-SP'+who.sp.replace(/[^\w-]/g,'')+'.html';
+    try{ var u=URL.createObjectURL(new Blob([doc],{type:'text/html'})), a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u);},4000); }
+    catch(e){ $('#pHint').textContent='Could not save a file from here. Open this test directly in your browser and try again.'; }
+  };
+  $('#retake').onclick=function(){ $('#coverErr').textContent=''; PARTS=null; REV=null; EDIT=null; arvMode(''); document.body.classList.remove('unrev'); show('cover'); };
+})();
+</script>
+</body>
+</html>

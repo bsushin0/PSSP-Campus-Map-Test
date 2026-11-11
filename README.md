@@ -15,9 +15,15 @@ map/admin.html        map test setup             (was admin.html)
 codes/index.html      Radio Codes Test
 codes/practice.html   radio codes practice
 codes/setup.html      edit the codes list (admin passcode)
+situations/index.html Situations Test (admin-run, pass or fail per scenario)
+situations/setup.html edit topics, checklists and detail lists
+sop/index.html        SOP Test (random approved questions, admin review before print)
+sop/setup.html        question bank: approve, edit, compare against a new SOP .docx
+admin/index.html      admin home: links, status, study links
 vault.html            where admins read saved results
 shared/               unlock, session and theme used by the pages above
 data/codes.json       the radio codes list
+data/situations.enc.json, data/sop-bank.enc.json   encrypted with the settings key (answers are never stored in plain text)
 data/study-links.json the SharePoint links on the Practice page
 data/, database/      encrypted map settings and saved results, as before
 practice.html, admin.html   forward old links to map/

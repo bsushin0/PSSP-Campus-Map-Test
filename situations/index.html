@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PSSP Situations Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/dts.css">
+<style>
+.card{border:2px solid var(--ink);padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.card h3{margin:0;font:700 1.7rem/1.05 var(--display);text-transform:uppercase}
+.say{font-size:1.02rem;color:var(--ink);border-left:4px solid var(--gold);padding:4px 12px}
+.det{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr);gap:8px 12px;align-items:center}
+.det label{margin:0}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.chk input{margin-top:4px;width:18px;height:18px;flex:none}
+.chk span{font-size:.95rem}
+.chk.on{border-color:var(--ok);background:var(--okbg)}
+.big2{display:flex;gap:10px}
+.big2 button{flex:1;padding:14px;font-size:1.1rem}
+.big2 button.pass.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.big2 button.fail.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.prog{display:flex;gap:4px;flex-wrap:wrap}
+.prog i{width:34px;height:6px;background:var(--line)}
+.prog i.done{background:var(--ink2)}.prog i.cur{background:var(--gold)}
+.warn{border-left:4px solid var(--bad);padding:8px 12px;background:var(--badbg);font-size:.9rem;color:var(--ink)}
+.verdict{font:700 1.1rem var(--display);text-transform:uppercase;letter-spacing:.06em;padding:4px 12px;border:2px solid;display:inline-block}
+.verdict.pass{color:var(--ok)}.verdict.fail{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th{font:600 .68rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);text-align:left;padding:6px 8px;border-bottom:2px solid var(--ink2)}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.rhead{display:none}
+.sig{display:grid;grid-template-columns:minmax(0,24rem);margin-top:20px;break-inside:avoid}
+.sig .sv{min-height:30px;display:flex;align-items:flex-end;border-bottom:1px solid var(--ink);padding-bottom:3px;font-weight:600}
+.sig .lb{font:600 .65rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);padding-top:4px}
+.sc{break-inside:avoid;border-top:1px solid var(--line);padding:8px 0}
+.sc h4{margin:0 0 4px;font:700 1.05rem var(--display);text-transform:uppercase;display:flex;justify-content:space-between;gap:10px}
+.sc ul{margin:4px 0;padding-left:0;list-style:none;font-size:.88rem}
+.sc li.t::before{content:"\2713  ";font-weight:700;color:var(--ok)}
+.sc li.n::before{content:"\00B7  ";color:var(--ink2)}
+.sc li.n{color:var(--ink2)}
+.kv{font-size:.88rem}.kv b{font:600 .65rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-right:6px}
+@page{size:letter;margin:12mm}
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  main{max-width:none;gap:10px}
+  h1{color:#000;border-bottom:3px solid #000;font-size:1.6rem}
+  section{border:none;padding:0;background:#fff}
+  #locked,#cover,#run,#summary,.noprint,.banner{display:none!important}
+  .rhead{display:grid;grid-template-columns:repeat(2,auto);gap:4px 28px;justify-content:start;font-size:.95rem;margin-bottom:6px}
+  .rhead span{font:600 .65rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#333;display:block}
+  .verdict{border-color:#000;color:#000!important}
+  .sc li.t::before{color:#000}.sc li.n{color:#444}
+  .sig .sv{border-color:#000;color:#000}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>PSSP Situations Test</h1>
+
+<section id="locked" hidden>
+  <h2>Testing is locked</h2>
+  <p id="lockedMsg">An administrator unlocks testing on the home page before a test starts.</p>
+  <div class="row"><a class="btn" href="../#testing">Go to Testing home</a></div>
+</section>
+
+<section id="cover" hidden>
+  <h2>Before you start</h2>
+  <p>You run this test. Read each scenario aloud, play dispatch, tick what the SP covers and mark each scenario Pass or Fail. The site does no grading. Keep this screen turned away from the SP: the checklist is the answer key.</p>
+  <div class="row">
+    <div class="grow"><label for="nm">SP being tested: full name</label><input type="text" id="nm" autocomplete="off" placeholder="First and last name"></div>
+    <div class="grow"><label for="sp">SP number</label><input type="text" id="sp" autocomplete="off" inputmode="numeric" placeholder="Their SP number"></div>
+  </div>
+  <div class="row">
+    <div class="grow"><label for="ev2">Second evaluator, full name (optional)</label><input type="text" id="ev2" autocomplete="off" placeholder="First and last name"></div>
+    <div class="grow"><label for="ev2s">Second evaluator SP number</label><input type="text" id="ev2s" autocomplete="off" inputmode="numeric"></div>
+  </div>
+  <p class="note" id="facts"></p>
+  <p class="err" id="coverErr" role="alert"></p>
+  <div class="row"><button type="button" id="start">Start</button><a class="btn alt" href="../#testing">Testing home</a></div>
+</section>
+
+<section id="run" hidden>
+  <div class="prog" id="prog" aria-hidden="true"></div>
+  <div class="row" style="justify-content:space-between"><span class="tag" id="qOf"></span><span class="row"><button type="button" class="alt" id="reroll">Re-roll details</button></span></div>
+  <div class="card">
+    <h3 id="topic"></h3>
+    <div class="warn" id="draftNote" hidden>The key points for this topic are not confirmed yet. Use your own judgment and the general checks. An admin can fill them in on Situations setup.</div>
+    <p class="say" id="prompt"></p>
+    <div class="det" id="det"></div>
+  </div>
+  <div><p class="tag">Look for</p><div id="cl" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div></div>
+  <div><p class="tag">On every scenario</p><div id="gl" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div></div>
+  <div><label for="notes">Notes (printed on the report)</label><textarea id="notes" style="min-height:70px;white-space:pre-wrap;font:inherit" maxlength="600"></textarea></div>
+  <div class="big2"><button type="button" class="alt pass" id="bP">Pass</button><button type="button" class="alt fail" id="bF">Fail</button></div>
+  <p class="err" id="runErr" role="alert"></p>
+  <div class="row"><button type="button" class="alt" id="prev">Back</button><button type="button" id="next">Next</button></div>
+</section>
+
+<section id="summary" hidden>
+  <h2>Summary</h2>
+  <div id="sumRows"></div>
+  <div class="banner" id="sumMajority"></div>
+  <div class="row" id="reqRow"><button type="button" class="alt" id="more">Request another scenario</button><span class="note" id="moreNote">Use this once if you are not sure after the first three.</span></div>
+  <div>
+    <label>Overall result</label>
+    <div class="big2"><button type="button" class="alt pass" id="oP">Pass</button><button type="button" class="alt fail" id="oF">Not yet</button></div>
+    <p class="note" id="oNote" style="margin-top:6px"></p>
+  </div>
+  <p class="err" id="sumErr" role="alert"></p>
+  <div class="row"><button type="button" class="alt" id="back">Back to scenarios</button><button type="button" id="finish">Finish and make the report</button></div>
+</section>
+
+<section id="report" hidden>
+  <div class="rhead" id="rhead"></div>
+  <h2>Situations report</h2>
+  <div class="row"><span class="verdict" id="rVerdict"></span><span class="note" id="rBasis"></span></div>
+  <div id="rBody"></div>
+  <div class="sig" id="rSig"></div>
+  <div class="row noprint"><button type="button" id="print">Print report</button><button type="button" class="alt" id="dl">Download report file</button><button type="button" class="alt" id="edit">Back to the summary</button><a class="btn alt" href="../#testing">Testing home</a></div>
+  <p class="note noprint" id="pHint">If Print report does nothing (some preview windows block printing), press Ctrl+P (Cmd+P on a Mac), or download the report file and open it in your browser.</p>
+</section>
+</main>
+
+<script src="../shared/dts.js"></script>
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s);};
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var pick=function(a){return a[Math.floor(Math.random()*a.length)];};
+  var rnd=function(a,b){return a+Math.floor(Math.random()*(b-a+1));};
+  var SES=DTS.session(), S=null, LOCS=[], RUN=[], cur=0, extra=false, overall=null, overallTouched=false, who={}, DONE=null;
+
+  function fail(msg){ $('#lockedMsg').textContent=msg; $('#locked').hidden=false; }
+  function show(id){ ['cover','run','summary','report'].forEach(function(x){ $('#'+x).hidden=(x!==id); }); window.scrollTo(0,0); }
+  function dstr(d){ return d.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
+
+  /* ----- start ----- */
+  if(!SES){ fail('An administrator unlocks testing on the home page before a test starts.'); return; }
+  DTS.openBoth(SES.pw,false).then(function(o){
+    return DTS.readData('data/situations.enc.json',o.dk).then(function(d){
+      if(!d||!Array.isArray(d.topics)||!d.topics.length) throw new Error('The Situations topics have not been set up yet. An admin can add them on Situations setup.');
+      S=d; buildLocations(o.p); boot();
+    });
+  }).catch(function(e){ fail((e&&e.message)||String(e)); });
+
+  /* places a scenario can happen: the map test's buildings and streets, plus any the admin added */
+  function buildLocations(p){
+    var ov=((p.ov&&p.ov.items)||{}), out=[];
+    (p.b||[]).forEach(function(b){
+      var id='b|'+(b.a||'')+'|'+b.n, o=ov[id]||{}; if(o.ex||b.rg) return;
+      var nm=o.name||b.n; if(nm) out.push({k:'b',t:nm});
+    });
+    (p.s||[]).forEach(function(s){ var o=ov['s||'+s.n]||{}; if(s.n) out.push({k:'s',t:s.n}); });
+    ((S.lists&&S.lists.extraLocations)||[]).forEach(function(t){ if(t) out.push({k:'x',t:t}); });
+    LOCS=out;
+  }
+  function place(){
+    if(!LOCS.length) return '';
+    var l=pick(LOCS);
+    if(l.k==='s') return 'on '+l.t;
+    return pick(['outside ','near ','in front of '])+l.t.replace(/\s*\([^)]*\)/g,'');
+  }
+  function person(){
+    var L=S.lists||{}, c=function(){return pick(L.colors||['black']);};
+    return pick(['male','female'])+', '+c()+' '+pick(L.tops||['hoodie'])+', '+c()+' '+pick(L.bottoms||['jeans'])+', '+pick(L.carry||['no bag']);
+  }
+  function vehicle(){ var L=S.lists||{}; return pick(L.vehicleColors||['black'])+' '+pick(L.vehicleKinds||['sedan']); }
+  function roll(t){
+    var sc={tid:t.id,loc:place(),dest:'',people:[],cars:[],checks:{},gen:{},notes:'',res:null};
+    if(t.dest) sc.dest=place();
+    var n=rnd(t.people[0],t.people[1]); for(var i=0;i<n;i++) sc.people.push(person());
+    for(var j=0;j<(t.vehicles||0);j++) sc.cars.push(vehicle());
+    return sc;
+  }
+  function topic(id){ return S.topics.filter(function(t){return t.id===id;})[0]; }
+
+  function boot(){
+    if(SES.taker){ $('#nm').value=SES.taker.name||''; $('#sp').value=SES.taker.sp||''; }
+    var n=S.scenarios||3; $('#facts').textContent=n+' scenarios, drawn at random from '+S.topics.length+' topics. You can request one more if you are unsure.';
+    show('cover');
+  }
+  $('#start').onclick=function(){
+    var nm=$('#nm').value.trim().replace(/\s+/g,' '), sp=$('#sp').value.trim().replace(/^sp[\s#.\-]*/i,''), e=$('#coverErr');
+    if(!nm){ e.textContent='Enter the SP’s name.'; return; } if(!sp){ e.textContent='Enter the SP’s number.'; return; }
+    var e2=$('#ev2').value.trim().replace(/\s+/g,' '), e2s=$('#ev2s').value.trim().replace(/^sp[\s#.\-]*/i,'');
+    e.textContent=''; who={name:nm,sp:sp,ev2:e2?(e2+(e2s?', SP '+e2s:'')):'',when:new Date()};
+    var ids=S.topics.map(function(t){return t.id;}); for(var i=ids.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), x=ids[i]; ids[i]=ids[j]; ids[j]=x; }
+    RUN=ids.slice(0,Math.min(S.scenarios||3,ids.length)).map(function(id){ return roll(topic(id)); });
+    cur=0; extra=false; overall=null; overallTouched=false; draw(); show('run');
+  };
+
+  /* ----- one scenario ----- */
+  function draw(){
+    var sc=RUN[cur], t=topic(sc.tid), last=cur===RUN.length-1;
+    $('#qOf').textContent='Scenario '+(cur+1)+' of '+RUN.length;
+    $('#topic').textContent=t.name; $('#prompt').textContent=t.prompt||''; $('#draftNote').hidden=!t.draft;
+    var rows='';
+    function f(label,key,val){ rows+='<label for="'+key+'">'+label+'</label><input type="text" id="'+key+'" data-f="'+key+'" value="'+esc(val)+'">'; }
+    f(t.dest?'From':'Location','loc',sc.loc); if(t.dest) f('To','dest',sc.dest);
+    sc.people.forEach(function(p,i){ f(sc.people.length>1?'Individual '+(i+1):'Individual','p'+i,p); });
+    sc.cars.forEach(function(c,i){ f(sc.cars.length>1?'Vehicle '+(i+1):'Vehicle','c'+i,c); });
+    $('#det').innerHTML=rows;
+    $('#cl').innerHTML=t.checklist.map(function(l,i){ return chk('c',i,l,sc.checks['c'+i]); }).join('');
+    $('#gl').innerHTML=S.general.map(function(l,i){ return chk('g',i,l,sc.gen['g'+i]); }).join('');
+    $('#notes').value=sc.notes||''; mark(sc.res); $('#runErr').textContent='';
+    $('#prev').disabled=cur===0; $('#next').textContent=last?'Finish scenarios':'Next';
+    $('#reroll').hidden=false;
+    $('#prog').innerHTML=RUN.map(function(r,i){ return '<i class="'+(i===cur?'cur':(r.res?'done':''))+'"></i>'; }).join('');
+  }
+  function chk(g,i,l,on){ return '<label class="chk'+(on?' on':'')+'" style="margin:0;text-transform:none;letter-spacing:0;font:inherit;color:inherit"><input type="checkbox" data-k="'+g+i+'"'+(on?' checked':'')+'><span>'+esc(l)+'</span></label>'; }
+  function mark(r){ $('#bP').classList.toggle('on',r==='pass'); $('#bF').classList.toggle('on',r==='fail'); }
+  function keep(){
+    var sc=RUN[cur], t=topic(sc.tid), g=function(k){ var e=$('[data-f="'+k+'"]'); return e?e.value.trim():''; };
+    sc.loc=g('loc'); if(t.dest) sc.dest=g('dest'); sc.people=sc.people.map(function(_,i){return g('p'+i);}); sc.cars=sc.cars.map(function(_,i){return g('c'+i);});
+    sc.notes=$('#notes').value.trim();
+  }
+  document.addEventListener('change',function(e){
+    var k=e.target&&e.target.dataset&&e.target.dataset.k; if(!k||$('#run').hidden) return;
+    var sc=RUN[cur]; (k[0]==='c'?sc.checks:sc.gen)[k.replace(/^[cg]/,k[0])]=e.target.checked; e.target.closest('.chk').classList.toggle('on',e.target.checked);
+  });
+  $('#bP').onclick=function(){ RUN[cur].res='pass'; mark('pass'); $('#runErr').textContent=''; $('#prog').children[cur].className='cur'; };
+  $('#bF').onclick=function(){ RUN[cur].res='fail'; mark('fail'); $('#runErr').textContent=''; };
+  $('#reroll').onclick=function(){
+    var sc=RUN[cur]; if(Object.keys(sc.checks).some(function(k){return sc.checks[k];})&&!confirm('New details replace what is on the card. Your ticks stay. Continue?')) return;
+    var n=roll(topic(sc.tid)); sc.loc=n.loc; sc.dest=n.dest; sc.people=n.people; sc.cars=n.cars; draw();
+  };
+  $('#prev').onclick=function(){ keep(); if(cur>0){ cur--; draw(); } };
+  $('#next').onclick=function(){
+    keep(); if(!RUN[cur].res){ $('#runErr').textContent='Mark this scenario Pass or Fail first.'; return; }
+    if(cur<RUN.length-1){ cur++; draw(); } else summary();
+  };
+
+  /* ----- summary ----- */
+  function counts(){ var p=RUN.filter(function(r){return r.res==='pass';}).length; return {p:p,n:RUN.length,maj:p>RUN.length/2}; }
+  function summary(){
+    var c=counts();
+    $('#sumRows').innerHTML=RUN.map(function(r,i){ var t=topic(r.tid); return '<div class="sc"><h4><span>'+(i+1)+'. '+esc(t.name)+'</span><span class="verdict '+(r.res==='pass'?'pass':'fail')+'">'+(r.res==='pass'?'Pass':'Fail')+'</span></h4><div class="kv">'+esc(r.loc)+'</div></div>'; }).join('');
+    $('#sumMajority').textContent=c.p+' of '+c.n+' scenarios passed. A majority is needed to pass'+(c.maj?', so the suggested result is Pass.':', so the suggested result is Not yet.');
+    if(!overallTouched) overall=c.maj?'pass':'fail';
+    setOverall();
+    var unused=S.topics.filter(function(t){ return !RUN.some(function(r){return r.tid===t.id;}); });
+    $('#reqRow').hidden=extra||!unused.length;
+    $('#sumErr').textContent=''; show('summary');
+  }
+  function setOverall(){
+    var c=counts(), sug=c.maj?'pass':'fail';
+    $('#oP').classList.toggle('on',overall==='pass'); $('#oF').classList.toggle('on',overall==='fail');
+    $('#oNote').textContent=overall&&overall!==sug?'This differs from the majority. The report will say the evaluator set the result.':'';
+  }
+  $('#oP').onclick=function(){ overall='pass'; overallTouched=true; setOverall(); };
+  $('#oF').onclick=function(){ overall='fail'; overallTouched=true; setOverall(); };
+  $('#more').onclick=function(){
+    var unused=S.topics.filter(function(t){ return !RUN.some(function(r){return r.tid===t.id;}); }); if(!unused.length) return;
+    RUN.push(roll(pick(unused))); extra=true; overallTouched=false; cur=RUN.length-1; draw(); show('run');
+  };
+  $('#back').onclick=function(){ cur=0; draw(); show('run'); };
+  $('#finish').onclick=function(){ if(!overall){ $('#sumErr').textContent='Pick the overall result.'; return; } DONE=new Date(); report(); show('report'); };
+
+  /* ----- report ----- */
+  function report(){
+    var c=counts(), sug=c.maj?'pass':'fail', ok=overall==='pass';
+    $('#rhead').innerHTML='<div><span>SP</span>'+esc(who.name)+', SP '+esc(who.sp)+'</div><div><span>Date</span>'+esc(dstr(who.when))+'</div><div><span>Evaluator</span>'+esc(SES.evName)+', SP '+esc(SES.evSp)+'</div>'+(who.ev2?'<div><span>Second evaluator</span>'+esc(who.ev2)+'</div>':'')+'<div><span>Test</span>Situations ('+c.n+' scenarios)</div>';
+    var v=$('#rVerdict'); v.textContent=ok?'Pass':'Not yet'; v.className='verdict '+(ok?'pass':'fail');
+    $('#rBasis').textContent=c.p+' of '+c.n+' scenarios passed'+(overall!==sug?'. Result set by the evaluator, different from the majority.':'.');
+    $('#rBody').innerHTML=RUN.map(function(r,i){
+      var t=topic(r.tid), det=[]; det.push((t.dest?'From: ':'Location: ')+r.loc); if(t.dest) det.push('To: '+r.dest);
+      r.people.forEach(function(p,k){ det.push((r.people.length>1?'Individual '+(k+1):'Individual')+': '+p); }); r.cars.forEach(function(x,k){ det.push((r.cars.length>1?'Vehicle '+(k+1):'Vehicle')+': '+x); });
+      var li=t.checklist.map(function(l,k){ return '<li class="'+(r.checks['c'+k]?'t':'n')+'">'+esc(l)+'</li>'; }).join('');
+      var gl=S.general.map(function(l,k){ return '<li class="'+(r.gen['g'+k]?'t':'n')+'">'+esc(l)+'</li>'; }).join('');
+      return '<div class="sc"><h4><span>'+(i+1)+'. '+esc(t.name)+'</span><span class="verdict '+(r.res==='pass'?'pass':'fail')+'">'+(r.res==='pass'?'Pass':'Fail')+'</span></h4>'
+        +'<div class="kv">'+det.map(esc).join(' &middot; ')+'</div><ul>'+li+'</ul><ul>'+gl+'</ul>'+(r.notes?'<div class="kv"><b>Notes</b>'+esc(r.notes)+'</div>':'')+'</div>';
+    }).join('');
+    $('#rSig').innerHTML='<div><div class="sv">'+esc(SES.evName)+', SP '+esc(SES.evSp)+'</div><div class="lb">Evaluator name</div></div>';
+  }
+  $('#edit').onclick=function(){ summary(); };
+  $('#print').onclick=function(){ try{ window.print(); }catch(e){ $('#pHint').textContent='Printing is blocked here. Press Ctrl+P, or download the report file and open it in your browser.'; } };
+  $('#dl').onclick=function(){
+    var c=$('#report').cloneNode(true); [].forEach.call(c.querySelectorAll('.noprint'),function(n){ n.remove(); }); c.removeAttribute('hidden');
+    var css=[].map.call(document.querySelectorAll('style'),function(s){return s.textContent;}).join('\n');
+    var doc='<!doctype html><html lang="en"><head><meta charset="utf-8"><title>PSSP Situations Report - '+esc(who.name)+'</title><style>:root{--bg:#fff;--panel:#fff;--ink:#000;--ink2:#333;--line:#999;--gold:#E0A81E;--ok:#23804F;--bad:#B93B34;--display:"Arial Narrow",Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}body{font:15px/1.5 system-ui,sans-serif;max-width:760px;margin:20px auto;padding:0 16px}h1,h2{font-family:var(--display);text-transform:uppercase}'+css.replace(/@media print\{/,'@media screen{.rhead{display:grid!important;grid-template-columns:repeat(2,auto);gap:4px 28px;justify-content:start}}@media print{')+'</style></head><body><h1>PSSP Situations Test</h1>'+c.outerHTML+'</body></html>';
+    try{ var u=URL.createObjectURL(new Blob([doc],{type:'text/html'})), a=document.createElement('a'); a.href=u; a.download='PSSP-Situations-Report-SP'+who.sp.replace(/[^\w-]/g,'')+'.html'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u);},4000); }
+    catch(e){ $('#pHint').textContent='Could not save a file from here. Open this test directly in your browser and try again.'; }
+  };
+})();
+</script>
+</body>
+</html>
