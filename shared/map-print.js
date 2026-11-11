@@ -6,14 +6,12 @@
 (function(root){
   'use strict';
 
-  var MM_W = 195, MM_H = 176;   /* nominal map box on a letter page, in mm (the page scales it to fit) */
-  var BADGE_H = 3.4;            /* badge height in mm at the nominal scale */
-  var FONT = 2.55;              /* badge number size in mm */
-  var MAX_LABELS = 30;          /* a detail map with more labels than this is split in four */
-  var MAX_DEPTH = 2;
-
+  var MM_W = 195, MM_H = 230;   /* nominal map box on a letter page, in mm (the page scales it to fit) */
+  var BADGE_H = 3;            /* badge height in mm at the nominal scale */
+  var FONT = 2.25;              /* badge number size in mm */
+  
   var CSS =
-    '#blist .mp{break-before:page;height:254mm;display:flex;flex-direction:column;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    '#blist .mp{break-before:page;height:249mm;display:flex;flex-direction:column;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
     '#blist .mp *{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
     '#blist .mh{display:flex;gap:5mm;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:2mm;margin-bottom:2mm}' +
     '#blist .mh h1{border:0;padding:0;font:700 12pt/1.15 system-ui,Arial,sans-serif;margin:0}' +
@@ -104,7 +102,7 @@
   }
 
   function badgeSize(n, s0, sq){
-    var d = String(n).length, h = BADGE_H / s0, w = Math.max(BADGE_H, 1.5 * d + 1.7) / s0;
+    var d = String(n).length, h = BADGE_H / s0, w = Math.max(BADGE_H, 1.38 * d + 1.5) / s0;
     return { w: w, h: h };
   }
   function badgeSvg(it, x, y, w, h, s0){
@@ -233,78 +231,33 @@
       return back + front;
     }
 
-    /* ---------- detail tiles ---------- */
-    var leaves = [], grid = null;
-    if(hasDetail){
-      var pad = 30, ex0 = ext[0] - pad, ey0 = ext[1] - pad, ex1 = ext[2] + pad, ey1 = ext[3] + pad;
-      var cw = ex1 - ex0, ch = ey1 - ey0, A = MM_W / MM_H, rw = Math.max(cw, ch * A), rh = rw / A;
-      var gx0 = (ex0 + ex1) / 2 - rw / 2, gy0 = (ey0 + ey1) / 2 - rh / 2;
-      grid = { x0: gx0, y0: gy0, x1: gx0 + rw, y1: gy0 + rh };
-      var addLeaf = function(rect, depth){
-        var s0 = Math.min(MM_W / (rect.x1 - rect.x0), MM_H / (rect.y1 - rect.y0));
-        var all = labelsIn(rect, s0), n = all.length, nb = all.filter(function(e){ return e.it.kind === 'b'; }).length;
-        if(!n) return;
-        if(nb > MAX_LABELS && depth < MAX_DEPTH){
-          var mx = (rect.x0 + rect.x1) / 2, my = (rect.y0 + rect.y1) / 2;
-          [[rect.x0, rect.y0, mx, my], [mx, rect.y0, rect.x1, my], [rect.x0, my, mx, rect.y1], [mx, my, rect.x1, rect.y1]].forEach(function(q){ addLeaf({ x0: q[0], y0: q[1], x1: q[2], y1: q[3] }, depth + 1); });
-        } else leaves.push(rect);
-      };
-      addLeaf({ x0: grid.x0, y0: grid.y0, x1: grid.x1, y1: grid.y1 }, 0);
-    }
-    var total = leaves.length;
-
-    var legend = '<span class="bd rq">12</span> required to pass &nbsp;<span class="bd">12</span> other item &nbsp;<span class="bd ex">12</span> left out of the test &nbsp;&middot;&nbsp; round badge = building or place, <span class="bd sq">12</span> = street &nbsp;&middot;&nbsp; dashed outline = landmark or area &nbsp;&middot;&nbsp; a dot and a line point to the item when its badge had to move aside';
-
-    function keyHtml(entries, heading){
-      var arr = entries.map(function(e){ return e.it; }).sort(function(a, b){ return a._n - b._n; });
-      return '<ul class="mk">' + (heading ? '<h3>' + esc(heading) + '</h3>' : '') + arr.map(function(it){
-        var code = it.kind === 'b' && /^[A-Z0-9&-]{1,7}$/.test(String(it.code)) ? '<b>' + esc(it.code) + '</b>' : '';
-        return '<li>' + badgeHtml(it) + code + '<span>' + esc(it.name) + (it.ex ? ' &dagger;' : '') + '</span></li>';
-      }).join('') + '</ul>';
-    }
-
-    function locator(cur){
-      var g = grid; if(!g) return '';
-      var w = g.x1 - g.x0, h = g.y1 - g.y0, s0 = 34 / w, sw = r1(0.3 / s0 * 10) / 10, out = '';
-      leaves.forEach(function(rc, k){
-        out += '<rect x="' + r1(rc.x0) + '" y="' + r1(rc.y0) + '" width="' + r1(rc.x1 - rc.x0) + '" height="' + r1(rc.y1 - rc.y0) + '" fill="' + (k === cur ? '#000' : '#fff') + '" stroke="#000" stroke-width="' + sw + '"/>' +
-          '<text x="' + r1((rc.x0 + rc.x1) / 2) + '" y="' + r1((rc.y0 + rc.y1) / 2) + '" font-size="' + r1(3.4 / s0) + '" font-family="system-ui,Arial,sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="' + (k === cur ? '#fff' : '#555') + '">' + (k + 1) + '</text>';
-      });
-      return '<svg class="loc" viewBox="' + r1(g.x0) + ' ' + r1(g.y0) + ' ' + r1(w) + ' ' + r1(h) + '" aria-hidden="true">' + out + '</svg>';
-    }
-
-    var pages = '';
-
-    /* overview: the whole patrol map, with the streets and the large areas numbered */
-    {
-      var v = D.view, rectO = { x0: v[0], y0: v[1], x1: v[2], y1: v[3] }, s0o = MM_W / (v[2] - v[0]);
-      var ents = labelsIn(rectO, s0o, { noBuildings: false, minRun: 0 }).filter(function(e){ return e.it.kind === 's' || e.it.rg; });
-      var taken = [];
-      place(ents, rectO, s0o, taken);
-      var tiles = '';
-      leaves.forEach(function(rc, k){
-        tiles += '<rect x="' + r1(rc.x0) + '" y="' + r1(rc.y0) + '" width="' + r1(rc.x1 - rc.x0) + '" height="' + r1(rc.y1 - rc.y0) + '" fill="#000" fill-opacity=".03" stroke="#000" stroke-width="' + r1(0.35 / s0o * 10) / 10 + '" stroke-dasharray="' + r1(2 / s0o) + ' ' + r1(1.2 / s0o) + '"/>' +
-          '<text x="' + r1((rc.x0 + rc.x1) / 2) + '" y="' + r1(rc.y0 + 6 / s0o) + '" font-size="' + r1(5.2 / s0o) + '" font-family="system-ui,Arial,sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#666" fill-opacity=".8">' + (k + 1) + '</text>';
-      });
-      var svgO = '<svg viewBox="' + r1(v[0]) + ' ' + r1(v[1]) + ' ' + r1(v[2] - v[0]) + ' ' + r1(v[3] - v[1]) + '" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">' +
-        base(rectO) + golfLabels(rectO, s0o) + tiles + drawLabels(ents, s0o) + scaleBar(rectO, s0o) + northArrow(rectO, s0o) + '</svg>';
-      var streets = ents.filter(function(e){ return e.it.kind === 's'; }), areas = ents.filter(function(e){ return e.it.kind === 'b'; });
-      pages += '<section class="mp"><div class="mh"><div><h1>PSSP Campus Map Test: building and street map</h1><div class="ms">Overview map' + (total ? ' &middot; the dashed squares are the detail maps on the pages after this one (numbered 1 to ' + total + ')' : '') + (date ? ' &middot; Printed ' + esc(date) : '') + '</div><div class="mg">' + legend + '</div></div></div>' +
-        '<div class="mw">' + svgO + '</div>' + keyHtml(streets, 'Streets') + (areas.length ? keyHtml(areas, 'Large areas') : '') +
-        '<p class="mg" style="margin:1.5mm 0 0;font:7pt/1.3 system-ui,Arial,sans-serif">Every building and place is numbered in the list on the first page and on the detail maps. Use the number to find the same item in both.</p></section>';
-    }
-
-    /* detail maps */
-    leaves.forEach(function(rect, k){
-      var s0 = Math.min(MM_W / (rect.x1 - rect.x0), MM_H / (rect.y1 - rect.y0)), m = 14 / s0;
-      var ents = labelsIn(rect, s0), taken = [];
-      place(ents, rect, s0, taken);
-      var view = { x0: rect.x0 - 0, y0: rect.y0 - 0, x1: rect.x1, y1: rect.y1 };
-      var svg = '<svg viewBox="' + r1(view.x0) + ' ' + r1(view.y0) + ' ' + r1(view.x1 - view.x0) + ' ' + r1(view.y1 - view.y0) + '" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">' +
-        base(view) + golfLabels(view, s0) + drawLabels(ents, s0) + scaleBar(view, s0) + northArrow(view, s0) + '</svg>';
-      pages += '<section class="mp"><div class="mh"><div><h1>PSSP Campus Map Test: building and street map</h1><div class="ms">Detail map ' + (k + 1) + ' of ' + total + ' &middot; ' + ents.length + ' items' + (date ? ' &middot; Printed ' + esc(date) : '') + '</div><div class="mg">' + legend + '</div></div>' + locator(k) + '</div>' +
-        '<div class="mw">' + svg + '</div>' + keyHtml(ents) + '</section>';
+    /* ---------- one page: the whole patrol map ---------- */
+    if(!hasDetail) return '';
+    var pad = 25, rect = { x0: ext[0] - pad, y0: ext[1] - pad, x1: ext[2] + pad, y1: ext[3] + pad };
+    /* streets that run only outside the buildings (the patrol boundary) still need a badge: widen the page to reach them */
+    recs.forEach(function(r){
+      if(r.it.kind !== 's') return;
+      var total = 0; r.samples.forEach(function(l){ total += l.length * 6; });
+      var run = bestRun(r.samples, rect);
+      if(run && run.length * 6 >= Math.min(60, total * 0.9)) return;
+      var best = null, bd = 1e12;
+      r.samples.forEach(function(l){ l.forEach(function(p){
+        var dx = Math.max(rect.x0 - p[0], 0, p[0] - rect.x1), dy = Math.max(rect.y0 - p[1], 0, p[1] - rect.y1), dd = dx * dx + dy * dy;
+        if(dd < bd){ bd = dd; best = p; }
+      }); });
+      if(best){ rect.x0 = Math.min(rect.x0, best[0] - 90); rect.x1 = Math.max(rect.x1, best[0] + 90); rect.y0 = Math.min(rect.y0, best[1] - 60); rect.y1 = Math.max(rect.y1, best[1] + 60); }
     });
+    /* match the page shape so nothing is wasted */
+    var A = MM_W / MM_H, cw = rect.x1 - rect.x0, chh = rect.y1 - rect.y0;
+    if(cw / chh > A){ var nh = cw / A, dy2 = (nh - chh) / 2; rect.y0 -= dy2; rect.y1 += dy2; }
+    else { var nw = chh * A, dx2 = (nw - cw) / 2; rect.x0 -= dx2; rect.x1 += dx2; }
+    var s0 = MM_W / (rect.x1 - rect.x0);
+    var ents = labelsIn(rect, s0), taken = [];
+    place(ents, rect, s0, taken);
+    var svg = '<svg viewBox="' + r1(rect.x0) + ' ' + r1(rect.y0) + ' ' + r1(rect.x1 - rect.x0) + ' ' + r1(rect.y1 - rect.y0) + '" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">' +
+      base(rect) + golfLabels(rect, s0) + drawLabels(ents, s0) + scaleBar(rect, s0) + northArrow(rect, s0) + '</svg>';
+    var legend = '<span class="bd rq">12</span> required to pass &nbsp;<span class="bd">12</span> other item &nbsp;<span class="bd ex">12</span> left out of the test &nbsp;&middot;&nbsp; round badge = building or place, <span class="bd sq">12</span> = street &nbsp;&middot;&nbsp; dashed outline = landmark or area &nbsp;&middot;&nbsp; a dot and a line point to the item when its badge had to move aside';
+    var pages = '<section class="mp"><div class="mh"><div><h1>PSSP Campus Map Test: building and street map</h1><div class="ms">Each number matches the numbered list. ' + ents.length + ' of ' + items.length + ' items shown' + (date ? ' &middot; Printed ' + esc(date) : '') + '</div><div class="mg">' + legend + '</div></div></div><div class="mw">' + svg + '</div></section>';
 
     return '<style>' + CSS + '</style>' + defsSvg + pages;
   }
