@@ -408,7 +408,7 @@ body.placing #map{cursor:crosshair}
         <div><h2 id="admH">Admin review</h2><p class="muted" id="admSum" style="margin-top:4px"></p></div>
         <div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" class="btn alt" id="admCancel" hidden>Cancel this test</button><button type="button" class="btn alt" id="admExit">Exit admin</button></div>
       </div>
-      <p class="adm-lite muted" id="admLiteNote">Test setup (names, answers, new buildings, settings) is on the <a href="admin.html">admin page</a>. This screen is for cancelling a test and for test records.</p>
+      <p class="adm-lite muted" id="admLiteNote">Test setup (names, answers, new buildings, settings) is on the Admin home (open it from the home page). This screen is for cancelling a test and for test records.</p>
       <div class="prog" id="admProg" aria-hidden="true"><i class="p1"></i><i class="p2"></i></div>
       <div class="legend"><span><i class="dot ok"></i>Accurate</span><span><i class="dot bad"></i>Not accurate</span><span><i class="dot"></i>Not reviewed</span><span>&#9733; required &middot; &#9998; edited &middot; &#8856; left out of test</span></div>
       <p class="hint">Click an item on the map or in the list. Every item is labeled on the map while you review.</p>
@@ -527,7 +527,7 @@ body.placing #map{cursor:crosshair}
       <button type="submit" class="btn" id="cvStart">Start the test</button>
     </form>
     <div class="dirs" id="cvDirs"></div>
-    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="admin.html">Test setup</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Lock the test</button></div>
+    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Lock the test</button></div>
   </div>
 </div>
 
@@ -1855,6 +1855,6 @@ fetch('../data/practice-overrides.json',{cache:'no-store'}).then(function(r){ re
 </script>
 <script>
 /* PSSP Digital Testing Site: practice lives in the Practice flow, so its links go back to the home page. */
-(function(){ [].forEach.call(document.querySelectorAll('a[href="./"]'),function(a){ a.setAttribute('href','../#practice'); if(/go to the test/i.test(a.textContent)) a.textContent='Back to practice home'; }); })();
+(function(){ [].forEach.call(document.querySelectorAll('a[href="./"]'),function(a){ a.setAttribute('href','../'); if(/go to the test|testing home|practice home/i.test(a.textContent)) a.textContent='Home'; }); })();
 </script>
 </body></html>
