@@ -122,7 +122,7 @@
         +'<form autocomplete="off" style="display:flex;flex-direction:column;gap:14px"><div><label for="agP">Admin passcode</label><input type="password" id="agP" autocomplete="current-password"></div>'
         +'<div class="row"><div class="grow"><label for="agN">Full name</label><input type="text" id="agN" autocomplete="off" placeholder="First and last name"></div>'
         +'<div class="grow"><label for="agS">SP number</label><input type="text" id="agS" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div></div>'
-        +'<p class="err" role="alert"></p><div class="row"><button type="submit">Sign in</button><a class="btn alt" href="'+ROOT+'#testing">Testing home</a></div></form>';
+        +'<p class="err" role="alert"></p><div class="row"><button type="submit">Sign in</button><a class="btn alt" href="'+ROOT+'">Home</a></div></form>';
       var f=sec.querySelector('form'), er=sec.querySelector('.err'), b=sec.querySelector('button[type=submit]');
       f.addEventListener('submit',function(e){ e.preventDefault(); er.textContent='Signing in…'; b.disabled=true;
         adminSignIn(sec.querySelector('#agP').value,sec.querySelector('#agN').value,sec.querySelector('#agS').value).then(function(o){ go(o); }).catch(function(x){ er.textContent=(x&&x.message)||String(x); b.disabled=false; });

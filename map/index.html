@@ -1923,7 +1923,7 @@ $('#unlP').focus();
   var q=function(s){return document.querySelector(s);};
   /* preview copies (any address other than the live site) save to the dev branch, never to main */
   try{ if(DTS.isDev){ var _t=setInterval(function(){ if(window.__GH){ window.__GH.branch='dev'; } },300); } }catch(e){}
-  var r=q('#unlF .r'); if(r){ r.innerHTML='<a href="../" style="color:inherit">Testing home</a>'; }
+  var r=q('#unlF .r'); if(r){ r.innerHTML='<a href="../" style="color:inherit">Home</a>'; }
   var pr=q('#cvPrac'); if(pr){ pr.textContent='Testing home'; pr.setAttribute('href','../'); }
   var lock=q('#cvAdmin'); if(lock){ lock.addEventListener('click',function(){ try{DTS.lock();}catch(e){} },true); }
   var s=null; try{ s=DTS.session(); }catch(e){}
