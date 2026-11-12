@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>PSSP SOP Test</title>
+<title>SOP · Standard Operating Procedures Test</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -46,7 +46,8 @@ td.ok{color:var(--ok);font-weight:700}td.no{color:var(--bad);font-weight:700}
 </head>
 <body>
 <main>
-<h1>PSSP SOP Test</h1>
+<h1>SOP</h1>
+<p class="full">Standard Operating Procedures Test</p>
 
 <section id="locked" hidden>
   <h2>Testing is locked</h2>
@@ -100,18 +101,20 @@ td.ok{color:var(--ok);font-weight:700}td.no{color:var(--bad);font-weight:700}
     <div class="row"><button type="button" id="arvSave">Approve review</button><button type="button" class="alt" id="arvCancel">Cancel</button><span class="tag" id="arvCount"></span></div>
   </div>
 
-  <div class="row noprint" id="rBtns"><button type="button" id="print" disabled>Print report</button><button type="button" class="alt" id="dl" disabled>Download report file</button><button type="button" class="alt" id="arvOpen">Admin review</button><button type="button" class="alt" id="retake">Start over</button><a class="btn alt" href="../#testing">Testing home</a></div>
+  <div class="row noprint" id="rBtns"><button type="button" id="print" disabled>Print report</button><button type="button" class="alt" id="dl" disabled>Download report file</button><button type="button" class="alt" id="arvOpen">Admin review</button><a class="btn alt" href="../#testing">Testing home</a></div>
+  <p class="vnote noprint" id="vNote" role="status"></p>
   <p class="noprint" id="pHint">If Print report does nothing (some preview windows block printing), press Ctrl+P (Cmd+P on a Mac), or click Download report file and open that file in your browser to print it.</p>
 </section>
 </main>
 
 <script src="../shared/dts.js"></script>
+<script src="../shared/vault-save.js"></script>
 <script src="../shared/codes-grade.js"></script>
 <script>
 (function(){
   var $=function(s){return document.querySelector(s);};
   var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
-  var SES=DTS.session(), B=null, Q=[], ANS=[], cur=0, who={}, PARTS=null, REV=null, EDIT=null, ARVNAME='', ARVSP='', FIN=false;
+  var SES=DTS.session(), GH=null, RID='', B=null, Q=[], ANS=[], cur=0, who={}, PARTS=null, REV=null, EDIT=null, ARVNAME='', ARVSP='', FIN=false;
   function fail(m){ $('#lockedMsg').textContent=m; $('#locked').hidden=false; }
   function show(id){ ['cover','run','report'].forEach(function(x){ $('#'+x).hidden=(x!==id); }); window.scrollTo(0,0); }
   function dstr(d){ return d.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
@@ -123,7 +126,7 @@ td.ok{color:var(--ok);font-weight:700}td.no{color:var(--bad);font-weight:700}
       var ok=((d&&d.questions)||[]).filter(function(q){return q.status==='approved';});
       var need=(d&&d.settings&&d.settings.count)||15;
       if(!d||ok.length<need) throw new Error('The SOP question bank has '+ok.length+' approved question'+(ok.length===1?'':'s')+' and needs at least '+need+'. An admin can approve more on SOP setup.');
-      B=d; boot(ok);
+      B=d; GH=o.p.gh||null; boot(ok);
     });
   }).catch(function(e){ fail((e&&e.message)||String(e)); });
 
@@ -137,7 +140,7 @@ td.ok{color:var(--ok);font-weight:700}td.no{color:var(--bad);font-weight:700}
   $('#start').onclick=function(){
     var nm=$('#nm').value.trim().replace(/\s+/g,' '), sp=$('#sp').value.trim().replace(/^sp[\s#.\-]*/i,''), e=$('#coverErr');
     if(nm.split(' ').length<2){ e.textContent='Enter your full name (first and last).'; return; } if(!/^\d+$/.test(sp)){ e.textContent='Enter your SP number (digits only).'; return; }
-    e.textContent=''; DTS.setTaker&&DTS.setTaker(nm,sp); who={name:nm,sp:sp,when:new Date()};
+    e.textContent=''; DTS.begin(); RID='t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); window.onbeforeunload=function(){ return FIN?undefined:'This test is in progress. A new visit needs a new login.'; }; who={name:nm,sp:sp,when:new Date()};
     Q=CODES.shuffle(POOL.slice()).slice(0,B.settings.count); ANS=Q.map(function(q){ return q.type==='list'?new Array(Math.max(q.need||q.key.length,1)).fill(''):''; });
     cur=0; PARTS=null; REV=null; EDIT=null; FIN=false; document.body.classList.remove('unrev'); draw(); show('run');
   };
@@ -167,7 +170,7 @@ td.ok{color:var(--ok);font-weight:700}td.no{color:var(--bad);font-weight:700}
     if(cur<Q.length-1){ cur++; draw(); return; }
     var blank=[]; Q.forEach(function(q,i){ var a=ANS[i]; if(Array.isArray(a)?!a.some(function(x){return x.trim();}):!String(a).trim()) blank.push(i+1); });
     if(blank.length&&!confirm('No answer for question'+(blank.length>1?'s ':' ')+blank.join(', ')+'. Finish anyway? Blank answers count as wrong.')) return;
-    grade(); FIN=true; render(); gate(); show('report');
+    grade(); FIN=true; render(); gate(); show('report'); toVault();
   };
 
   /* ----- grading: one mark per part ----- */
@@ -217,7 +220,7 @@ td.ok{color:var(--ok);font-weight:700}td.no{color:var(--bad);font-weight:700}
   $('#arvCancel').onclick=function(){ EDIT=null; arvMode(''); render(); gate(); };
   $('#arvSave').onclick=function(){
     PARTS.forEach(function(p,k){ if(EDIT[k]!==undefined){ p.ov=(EDIT[k]===p.auto)?undefined:EDIT[k]; } });
-    REV={name:ARVNAME,sp:ARVSP,when:new Date(),note:$('#arvNote').value.trim()}; EDIT=null; arvMode(''); render(); gate();
+    REV={name:ARVNAME,sp:ARVSP,when:new Date(),note:$('#arvNote').value.trim()}; EDIT=null; arvMode(''); render(); gate(); toVault();
   };
 
   /* ----- print and file ----- */
@@ -230,7 +233,20 @@ td.ok{color:var(--ok);font-weight:700}td.no{color:var(--bad);font-weight:700}
     try{ var u=URL.createObjectURL(new Blob([doc],{type:'text/html'})), a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u);},4000); }
     catch(e){ $('#pHint').textContent='Could not save a file from here. Open this test directly in your browser and try again.'; }
   };
-  $('#retake').onclick=function(){ $('#coverErr').textContent=''; PARTS=null; REV=null; EDIT=null; arvMode(''); document.body.classList.remove('unrev'); show('cover'); };
+  /* ----- vault: saved when submitted, and again after the admin review ----- */
+  var LASTREC=null;
+  function toVault(){
+    var right=0; PARTS.forEach(function(p,k){ if(nowOk(p,k)) right++; }); var N=PARTS.length, W=B.settings.maxWrong;
+    LASTREC={id:RID,test:'sop',name:who.name,sp:who.sp,ev:SES.evName+', SP '+SES.evSp,start:who.when.getTime(),end:Date.now(),sopVersion:B.sopVersion||'',
+      pass:(N-right)<=W,summary:right+' / '+N+' ('+Math.round(right/N*1000)/10+'%)',rule:'No more than '+W+' wrong of '+N,
+      parts:PARTS.map(function(p,k){ var ok=nowOk(p,k); return {n:p.label,key:p.key,given:p.given,ok:ok,auto:p.auto,changed:ok!==p.auto}; }),
+      rev:REV?{name:REV.name,sp:REV.sp,when:REV.when.getTime(),note:REV.note}:null};
+    sendVault();
+  }
+  function sendVault(){
+    var n=$('#vNote'); n.textContent='Saving to the results vault\u2026';
+    PSSPVault.save(LASTREC,GH).then(function(m){ n.textContent=m; }).catch(function(e){ n.innerHTML='Could not save to the vault: '+esc((e&&e.message)||e)+' '; var b=document.createElement('button'); b.type='button'; b.className='alt'; b.textContent='Try again'; b.onclick=sendVault; n.appendChild(b); });
+  }
 })();
 </script>
 </body>

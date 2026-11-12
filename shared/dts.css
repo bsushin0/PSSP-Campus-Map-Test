@@ -40,3 +40,6 @@ button.lnk{background:none;border:none;padding:0;color:inherit;text-decoration:u
 .who span{font:600 .65rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);display:block}
 [hidden]{display:none!important}
 @media print{.noprint{display:none!important}}
+.full{font:600 .8rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin:6px 0 0}
+.tile .ff{font:600 .74rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.vnote{font-size:.9rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}

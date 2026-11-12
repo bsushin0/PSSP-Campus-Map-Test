@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>PSSP Radio Codes Test</title>
+<title>RCT · Radio Codes Test</title>
 <style>
 :root{--bg:#E7ECEA;--panel:#F5F7F6;--ink:#16221F;--ink2:#46565A;--line:#C3CDCA;--gold:#E0A81E;--goldink:#8A6410;--bad:#B93B34;--ok:#23804F;--okbg:#DDEFE4;--badbg:#F6E1DF;
   --display:"Arial Narrow","Roboto Condensed",system-ui,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
@@ -100,7 +100,8 @@ td.act button{padding:4px 8px;font-size:.78rem}
 </head>
 <body>
 <main>
-<h1>PSSP Radio Codes Test</h1>
+<h1>RCT</h1>
+<p class="full">Radio Codes Test</p>
 
 <!-- The list of codes is in data/codes.json. Change it on codes/setup.html (admin passcode).
      The offline copy in SharePoint (PSSP-Radio-Codes-Test.html) has its own list: keep the two the same. -->
@@ -166,12 +167,14 @@ td.act button{padding:4px 8px;font-size:.78rem}
     <div class="row"><button type="button" id="arvSave">Approve review</button><button type="button" class="alt" id="arvCancel">Cancel</button><span class="q-of" id="arvCount"></span></div>
   </div>
 
-  <div class="row noprint" id="rBtns"><button type="button" id="print" disabled>Print report</button><button type="button" class="alt" id="dl" disabled>Download report file</button><button type="button" class="alt" id="arvOpen">Admin review</button><button type="button" class="alt" id="retake">Start over</button><a class="btn alt" href="../#testing">Testing home</a></div>
+  <div class="row noprint" id="rBtns"><button type="button" id="print" disabled>Print report</button><button type="button" class="alt" id="dl" disabled>Download report file</button><button type="button" class="alt" id="arvOpen">Admin review</button><a class="btn alt" href="../#testing">Testing home</a></div>
+  <p class="vnote noprint" id="vNote" role="status"></p>
   <p class="noprint" id="pHint">If Print report does nothing (some preview windows block printing), press Ctrl+P (Cmd+P on a Mac), or click Download report file and open that file in your browser to print it.</p>
 </section>
 </main>
 
 <script src="../shared/dts.js"></script>
+<script src="../shared/vault-save.js"></script>
 <script src="../shared/codes-grade.js"></script>
 <script>
 var MAX_WRONG = 2, SHUFFLE = true, ITEMS = [];   /* filled from data/codes.json */
@@ -180,7 +183,8 @@ function boot(){
   var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
   var isRight=CODES.isRight, shuffle=CODES.shuffle;
   var order=[], ans=[], cur=0, who={name:'',sp:'',when:null}, RES=null, REV=null, EDIT=null, ARVSP='', ARVNAME='';
-  var SES=DTS.session()||{};
+  var SES=DTS.session()||{}, GH=null, RID='';
+  if(SES.pw) DTS.openBoth(SES.pw,false).then(function(o){ GH=o.p.gh||null; }).catch(function(){});
 
   function show(id){ ['cover','quiz','report'].forEach(function(x){ $('#'+x).hidden=(x!==id); }); window.scrollTo(0,0); }
   function dstr(d){ return d.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
@@ -193,7 +197,7 @@ function boot(){
     var nm=$('#nm').value.trim().replace(/\s+/g,' '), sp=$('#sp').value.trim().replace(/^sp[\s#.\-]*/i,''), e=$('#coverErr');
     if(!nm){ e.textContent='Enter your name.'; $('#nm').focus(); return; }
     if(!sp){ e.textContent='Enter your SP number.'; $('#sp').focus(); return; }
-    e.textContent=''; who={name:nm,sp:sp,when:new Date()}; RES=null; REV=null; EDIT=null;
+    e.textContent=''; DTS.begin(); RID='t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); window.onbeforeunload=function(){ return RES?undefined:'This test is in progress. A new visit needs a new login.'; }; who={name:nm,sp:sp,when:new Date()}; RES=null; REV=null; EDIT=null;
     order=ITEMS.map(function(_,i){return i;}); if(SHUFFLE) shuffle(order);
     ans=order.map(function(){return '';}); cur=0; draw(); show('quiz'); $('#ans').focus();
   };
@@ -219,7 +223,7 @@ function boot(){
     this.dataset.warned='';
     /* grade once, in list order; admin changes are kept in ov */
     RES=order.map(function(idx,i){ return {idx:idx,given:ans[i].trim(),auto:isRight(ITEMS[idx],ans[i]),ov:undefined}; }).sort(function(a,b){return a.idx-b.idx;});
-    REV=null; EDIT=null; render(); show('report'); $('#arvErr').textContent='';
+    REV=null; EDIT=null; render(); show('report'); $('#arvErr').textContent=''; toVault();
     /* the evaluator who unlocked testing is filled in; they still have to start and approve the review */
     $('#arvName').value=SES.evName||''; $('#arvSp').value=SES.evSp||''; arvMode('ask'); gate(); (SES.evName?$('#arvGo'):$('#arvName')).focus();
   };
@@ -269,7 +273,7 @@ function boot(){
   $('#arvSave').onclick=function(){
     RES.forEach(function(r,k){ if(EDIT[k]!==undefined){ if(EDIT[k]===r.auto) r.ov=undefined; else r.ov=EDIT[k]; } });
     REV={name:ARVNAME,sp:ARVSP,when:new Date(),note:$('#arvNote').value.trim()}; EDIT=null;
-    arvMode(''); render(); gate();
+    arvMode(''); render(); gate(); toVault();
   };
 
   /* ----- print and file ----- */
@@ -282,7 +286,20 @@ function boot(){
     try{ var u=URL.createObjectURL(new Blob([doc],{type:'text/html'})), a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u);},4000); }
     catch(e){ $('#pHint').textContent='Could not save a file from here. Open this test directly in your browser and try again.'; }
   };
-  $('#retake').onclick=function(){ $('#nm').value=''; $('#sp').value=''; $('#coverErr').textContent=''; RES=null; REV=null; EDIT=null; arvMode(''); document.body.classList.remove('unrev'); show('cover'); };
+  /* ----- vault: saved when submitted, and again after the admin review ----- */
+  var LASTREC=null;
+  function toVault(){
+    var right=0; RES.forEach(function(r,k){ if(nowOk(r,k)) right++; }); var N=RES.length;
+    LASTREC={id:RID,test:'rct',name:who.name,sp:who.sp,ev:(SES.evName||'')+(SES.evSp?', SP '+SES.evSp:''),start:who.when.getTime(),end:Date.now(),
+      pass:(N-right)<=MAX_WRONG,summary:right+' / '+N+' ('+Math.round(right/N*1000)/10+'%)',rule:'No more than '+MAX_WRONG+' wrong of '+N,
+      parts:RES.map(function(r,k){ var it=ITEMS[r.idx], ok=nowOk(r,k); return {n:it.code+' ('+(it.k==='signal'?'Signal':'10-code')+')',key:it.a,given:r.given,ok:ok,auto:r.auto,changed:ok!==r.auto}; }),
+      rev:REV?{name:REV.name,sp:REV.sp,when:REV.when.getTime(),note:REV.note}:null};
+    sendVault();
+  }
+  function sendVault(){
+    var n=$('#vNote'); n.textContent='Saving to the results vault\u2026';
+    PSSPVault.save(LASTREC,GH).then(function(m){ n.textContent=m; }).catch(function(e){ n.innerHTML='Could not save to the vault: '+esc((e&&e.message)||e)+' '; var b=document.createElement('button'); b.type='button'; b.className='alt'; b.textContent='Try again'; b.onclick=sendVault; n.appendChild(b); });
+  }
 
   show('cover');
 }

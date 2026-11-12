@@ -41,7 +41,7 @@ td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 <h1>PSSP Vault</h1>
 
 <div class="box" id="lock">
-  <p>Results saved by the Campus Map Test are encrypted. Enter the vault password to read them. Everything is decrypted in this browser and nothing is sent anywhere.</p>
+  <p>Results saved by the CMT, RCT, SOP and SIT tests are encrypted. Enter the vault password to read them. Everything is decrypted in this browser and nothing is sent anywhere.</p>
   <form id="lf" class="row" autocomplete="off">
     <input type="password" id="pw" placeholder="Vault password" aria-label="Vault password" style="max-width:320px" autocomplete="current-password">
     <button type="submit" id="ub">Unlock</button>
@@ -61,6 +61,7 @@ td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
     <div class="row">
       <span class="k">Repository</span>
       <input type="text" id="repo" placeholder="owner/repository" style="max-width:280px" aria-label="Repository as owner/repository">
+      <select id="ft" aria-label="Filter by test" style="max-width:300px;font:inherit;padding:10px;border:1.5px solid var(--ink2);background:var(--bg);color:var(--ink)"><option value="">All tests</option><option value="cmt">CMT: Campus Map Test</option><option value="rct">RCT: Radio Codes Test</option><option value="sop">SOP: Standard Operating Procedures Test</option><option value="sit">SIT: Situations Test</option></select>
       <input type="search" id="q" placeholder="Search name, SP number or version" style="max-width:280px" aria-label="Search">
     </div>
     <p class="msg" id="am" role="status"></p>
@@ -196,7 +197,7 @@ function guessRepo(){
   return '';
 }
 var addMap=new Map();
-function add(rec){ if(rec&&rec.id&&rec.rows) addMap.set(rec.id,rec); RECS=Array.from(addMap.values()).sort(function(a,b){return b.end-a.end;}); }
+function add(rec){ if(rec&&rec.id&&(rec.rows||rec.test)){ rec.test=rec.test||'cmt'; addMap.set(rec.id,rec); } RECS=Array.from(addMap.values()).sort(function(a,b){return b.end-a.end;}); }
 async function fromRepo(){
   var repo=$('#repo').value.trim(); if(!/^[\w.-]+\/[\w.-]+$/.test(repo)){ msg('Enter the repository as owner/repository.','bad'); return; }
   try{ localStorage.setItem('pssp-vault-repo',repo); }catch(e){}
@@ -217,24 +218,54 @@ async function fromFiles(list){
   render(); msg(RECS.length+' record'+(RECS.length===1?'':'s')+' readable'+(bad?', '+bad+' file'+(bad===1?'':'s')+' could not be read':'')+'.',bad?'bad':'ok');
 }
 function msg(t,c){ var m=$('#am'); m.textContent=t; m.className='msg '+(c||''); }
+var TESTS={cmt:['CMT','Campus Map Test'],rct:['RCT','Radio Codes Test'],sop:['SOP','Standard Operating Procedures Test'],sit:['SIT','Situations Test']};
+var tOf=function(r){return r.test||'cmt';};
+function info(r){
+  if(tOf(r)==='cmt'){ var m=summarize(r); return {score:m.pct+'% ('+m.ok+'/'+m.total+')',pass:m.pass,res:m.pass?'Pass':'Retest',changes:m.log.length,ver:r.mode==='refresher'?'Refresher':'Initial'}; }
+  var ch=(r.parts||[]).filter(function(x){return x.changed;}).length;
+  return {score:r.summary||'',pass:!!r.pass,res:r.pass?'Pass':'Not yet',changes:ch,ver:''};
+}
+function genericReport(r){
+  var t=TESTS[tOf(r)], f=info(r), res=r.pass?'y':'n', body='';
+  if(tOf(r)==='sit'){
+    var li=function(a,c){ return (a||[]).map(function(x){return '<li class="'+c+'">'+esc(x)+'</li>';}).join(''); };
+    body='<h2>Scenarios</h2>'+(r.scenarios||[]).map(function(sc,i){
+      return '<div style="break-inside:avoid;margin:0 0 14px"><div style="display:flex;justify-content:space-between;gap:10px"><b>'+(i+1)+'. '+esc(sc.topic)+'</b><b style="color:var(--rp-'+(sc.res==='pass'?'ok':'bad')+')">'+(sc.res==='pass'?'PASS':'FAIL')+'</b></div>'
+        +'<div class="rpa">'+[sc.loc?'Location: '+sc.loc:'',sc.dest?'To: '+sc.dest:''].concat(sc.people||[],sc.vehicles||[]).filter(Boolean).map(esc).join(' &middot; ')+'</div>'
+        +'<ul style="margin:6px 0;padding-left:18px">'+li(sc.done,'y')+li(sc.generalDone,'y')+'</ul><div class="rpk">Not covered</div><ul style="margin:6px 0;padding-left:18px;color:var(--rp-mute)">'+li(sc.missed,'n')+li(sc.generalMissed,'n')+'</ul>'+(sc.notes?'<div><b>Notes:</b> '+esc(sc.notes)+'</div>':'')+'</div>';
+    }).join('');
+  } else {
+    body='<h2>Answers</h2><div class="tw"><table><thead><tr><th>Item</th><th>Correct answer</th><th>Answer given</th><th>Result</th></tr></thead><tbody>'+(r.parts||[]).map(function(x){
+      return '<tr><td>'+esc(x.n)+'</td><td>'+esc(x.key)+'</td><td>'+(x.given?esc(x.given):'')+'</td><td class="r '+(x.ok?'y':'n')+'">'+(x.ok?'Correct':'Wrong')+(x.changed?'<div class="rpa">Changed by admin</div>':'')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  }
+  return '<article class="rp"><div class="rpk">Purdue Student Safety Patrol</div><h1>'+t[0]+' Record</h1><div class="rpk" style="margin-top:6px">'+t[1]+'</div>'
+   +'<dl class="meta"><div><dt class="rpk">Name</dt><dd>'+esc(r.name)+'</dd></div><div><dt class="rpk">SP number</dt><dd>'+esc(r.sp)+'</dd></div><div><dt class="rpk">Date</dt><dd>'+fmtDate(r.end)+'</dd></div><div><dt class="rpk">Time</dt><dd>'+fmtTime(r.start)+' &ndash; '+fmtTime(r.end)+' ('+fmtDur(r.end-r.start)+')</dd></div>'
+   +(r.ev?'<div><dt class="rpk">Evaluator</dt><dd>'+esc(r.ev)+'</dd></div>':'')+(r.ev2?'<div><dt class="rpk">Second evaluator</dt><dd>'+esc(r.ev2)+'</dd></div>':'')+(r.sopVersion?'<div><dt class="rpk">SOP version</dt><dd>'+esc(r.sopVersion)+'</dd></div>':'')+'</dl>'
+   +'<div class="rpscore"><div class="rpstat"><div><b>'+esc(r.summary||'')+'</b>'+(r.rule?' &middot; '+esc(r.rule):'')+'</div><div class="banner '+res+'">'+(r.pass?'Passed':'Not yet')+(r.overridden?' &middot; result set by the evaluator':'')+'</div></div></div>'
+   +(r.rev?'<p style="margin:12px 0 0"><b>Reviewed by '+esc(r.rev.name)+', SP '+esc(r.rev.sp)+'</b> on '+fmtDate(r.rev.when)+'.'+(f.changes?' '+f.changes+' mark'+(f.changes===1?' was':'s were')+' changed.':' No marks were changed.')+(r.rev.note?' Reason: '+esc(r.rev.note):'')+'</p>':(tOf(r)==='sit'?'':'<p style="margin:12px 0 0"><b>Not yet reviewed by an admin.</b></p>'))
+   +body+'<div class="sig"><div class="sc"><div class="sv">'+esc(r.ev||'')+'</div><div class="rpk">Evaluator name</div></div></div><div class="rpfoot"><span>Record '+esc(r.id)+'</span><span>Generated '+fmtDate(Date.now())+' '+fmtTime(Date.now())+'</span></div></article>';
+}
+var reportFor=function(r){ return tOf(r)==='cmt'?reportHtml(r):genericReport(r); };
 function render(){
-  var q=$('#q').value.trim().toLowerCase();
-  var rows=RECS.filter(function(r){ return !q||(r.name+' '+r.sp+' '+(r.mode==='refresher'?'refresher':'initial')).toLowerCase().indexOf(q)>=0; });
-  $('#list').innerHTML=rows.length?'<table><thead><tr><th>Name</th><th>SP</th><th>Version</th><th>Date</th><th>Score</th><th>Result</th><th>Changed by admin</th><th></th></tr></thead><tbody>'+rows.map(function(r){
-    var m=summarize(r), i=RECS.indexOf(r);
-    return '<tr><td>'+esc(r.name)+'</td><td>'+esc(r.sp)+'</td><td>'+(r.mode==='refresher'?'Refresher':'Initial')+'</td><td>'+fmtDate(r.end)+'</td><td>'+m.pct+'% ('+m.ok+'/'+m.total+')</td><td class="'+(m.pass?'pass':'fail')+'">'+(m.pass?'Pass':'Retest')+'</td><td>'+(m.log.length?m.log.length+' change'+(m.log.length>1?'s':''):'No')+'</td><td><button class="lnk" data-i="'+i+'">Open</button></td></tr>';
-  }).join('')+'</tbody></table>':'<p>No records loaded yet.</p>';
+  var q=$('#q').value.trim().toLowerCase(), ft=$('#ft').value;
+  var rows=RECS.filter(function(r){ return (!ft||tOf(r)===ft)&&(!q||(r.name+' '+r.sp+' '+TESTS[tOf(r)][0]+' '+info(r).ver).toLowerCase().indexOf(q)>=0); });
+  $('#list').innerHTML=rows.length?'<table><thead><tr><th>Test</th><th>Name</th><th>SP</th><th>Version</th><th>Date</th><th>Score</th><th>Result</th><th>Changed by admin</th><th></th></tr></thead><tbody>'+rows.map(function(r){
+    var f=info(r), i=RECS.indexOf(r);
+    return '<tr><td title="'+esc(TESTS[tOf(r)][1])+'"><b>'+TESTS[tOf(r)][0]+'</b></td><td>'+esc(r.name)+'</td><td>'+esc(r.sp)+'</td><td>'+(f.ver||'&ndash;')+'</td><td>'+fmtDate(r.end)+'</td><td>'+esc(f.score)+'</td><td class="'+(f.pass?'pass':'fail')+'">'+f.res+'</td><td>'+(f.changes?f.changes+' change'+(f.changes>1?'s':''):'No')+'</td><td><button class="lnk" data-i="'+i+'">Open</button></td></tr>';
+  }).join('')+'</tbody></table>':'<p>'+(RECS.length?'No records match this filter.':'No records loaded yet.')+'</p>';
 }
 function csvCell(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 function exportCsv(){
-  var head=['Name','SP','Version','Date','Score','Percent','Result','Required correct','Required total','Missed items'];
-  var lines=[head.join(',')].concat(RECS.map(function(r){ var m=summarize(r);
-    return [r.name,r.sp,r.mode==='refresher'?'Refresher':'Initial',new Date(r.end).toISOString().slice(0,10),m.ok+'/'+m.total,m.pct,m.pass?'Pass':'Retest',m.rq.length-m.rqBad.length,m.rq.length,r.rows.filter(function(x){return !eff(x);}).map(function(x){return x.n;}).join('; ')].map(csvCell).join(','); }));
-  save('pssp-results.csv','﻿'+lines.join('\n'),'text/csv');
+  var ft=$('#ft').value, list=RECS.filter(function(r){ return !ft||tOf(r)===ft; });
+  var head=['Test','Name','SP','Version','Date','Score','Result','Evaluator','Changed by admin','Missed or wrong'];
+  var lines=[head.join(',')].concat(list.map(function(r){ var f=info(r), miss=tOf(r)==='cmt'?r.rows.filter(function(x){return !eff(x);}).map(function(x){return x.n;}):tOf(r)==='sit'?(r.scenarios||[]).filter(function(x){return x.res!=='pass';}).map(function(x){return x.topic;}):(r.parts||[]).filter(function(x){return !x.ok;}).map(function(x){return x.n;});
+    return [TESTS[tOf(r)][0],r.name,r.sp,f.ver,new Date(r.end).toISOString().slice(0,10),f.score,f.res,r.ev||'',f.changes,miss.join('; ')].map(csvCell).join(','); }));
+  save('pssp-results'+(ft?'-'+ft:'')+'.csv','﻿'+lines.join('\n'),'text/csv');
 }
 function save(name,text,type){ var u=URL.createObjectURL(new Blob([text],{type:type})),a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u);},4000); }
 function safe(s){return String(s).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'')||'x';}
-function reportDoc(rec){ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Campus Map Test – '+esc(rec.name)+' – SP '+esc(rec.sp)+'</title><style>html{color-scheme:light}body{margin:0;background:#fff;padding:16px}'+REPORT_CSS+'.rp{margin:0 auto}@media print{body{padding:0}}</style></head><body>'+reportHtml(rec)+'</body></html>'; }
+function reportDoc(rec){ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+TESTS[tOf(rec)][1]+' – '+esc(rec.name)+' – SP '+esc(rec.sp)+'</title><style>html{color-scheme:light}body{margin:0;background:#fff;padding:16px}'+REPORT_CSS+'.rp{margin:0 auto}@media print{body{padding:0}}</style></head><body>'+reportFor(rec)+'</body></html>'; }
 
 $('#lf').addEventListener('submit',async function(e){
   e.preventDefault(); var m=$('#lm'); m.className='msg'; m.textContent='Unlocking…'; $('#ub').disabled=true;
@@ -248,11 +279,11 @@ $('#lf').addEventListener('submit',async function(e){
 });
 $('#rl').onclick=function(){ fromRepo(); };
 $('#fi').addEventListener('change',function(e){ fromFiles(e.target.files); e.target.value=''; });
-$('#csv').onclick=exportCsv; $('#q').addEventListener('input',render);
+$('#csv').onclick=exportCsv; $('#q').addEventListener('input',render); $('#ft').addEventListener('change',render);
 $('#lk').onclick=function(){ PRIV=null; RECS=[]; addMap.clear(); $('#app').hidden=true; $('#lock').hidden=false; $('#lm').textContent=''; $('#list').innerHTML=''; };
-$('#list').addEventListener('click',function(e){ var b=e.target.closest('[data-i]'); if(!b) return; CUR=RECS[+b.dataset.i]; $('#rb').innerHTML='<style>'+REPORT_CSS+'</style>'+reportHtml(CUR); $('#ov').hidden=false; $('#ov').scrollTop=0; });
+$('#list').addEventListener('click',function(e){ var b=e.target.closest('[data-i]'); if(!b) return; CUR=RECS[+b.dataset.i]; $('#rb').innerHTML='<style>'+REPORT_CSS+'</style>'+reportFor(CUR); $('#ov').hidden=false; $('#ov').scrollTop=0; });
 $('#cl').onclick=function(){ $('#ov').hidden=true; };
-$('#dl').onclick=function(){ if(CUR) save('SP-'+safe(CUR.sp)+'_'+safe(CUR.name)+'_'+(CUR.mode==='refresher'?'Refresher':'Initial')+'.html',reportDoc(CUR),'text/html'); };
+$('#dl').onclick=function(){ if(CUR) save('SP-'+safe(CUR.sp)+'_'+safe(CUR.name)+'_'+TESTS[tOf(CUR)][0]+(tOf(CUR)==='cmt'?'_'+(CUR.mode==='refresher'?'Refresher':'Initial'):'')+'.html',reportDoc(CUR),'text/html'); };
 document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('#ov').hidden) $('#ov').hidden=true; });
 })();
 </script>

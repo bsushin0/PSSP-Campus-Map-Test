@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>PSSP Situations Test</title>
+<title>SIT · Situations Test</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -60,7 +60,8 @@ td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
 </head>
 <body>
 <main>
-<h1>PSSP Situations Test</h1>
+<h1>SIT</h1>
+<p class="full">Situations Test</p>
 
 <section id="locked" hidden>
   <h2>Testing is locked</h2>
@@ -121,19 +122,21 @@ td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
   <div class="row"><span class="verdict" id="rVerdict"></span><span class="note" id="rBasis"></span></div>
   <div id="rBody"></div>
   <div class="sig" id="rSig"></div>
-  <div class="row noprint"><button type="button" id="print">Print report</button><button type="button" class="alt" id="dl">Download report file</button><button type="button" class="alt" id="edit">Back to the summary</button><a class="btn alt" href="../#testing">Testing home</a></div>
+  <div class="row noprint"><button type="button" id="print">Print report</button><button type="button" class="alt" id="dl">Download report file</button><a class="btn alt" href="../#testing">Testing home</a></div>
+  <p class="vnote noprint" id="vNote" role="status"></p>
   <p class="note noprint" id="pHint">If Print report does nothing (some preview windows block printing), press Ctrl+P (Cmd+P on a Mac), or download the report file and open it in your browser.</p>
 </section>
 </main>
 
 <script src="../shared/dts.js"></script>
+<script src="../shared/vault-save.js"></script>
 <script>
 (function(){
   var $=function(s){return document.querySelector(s);};
   var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
   var pick=function(a){return a[Math.floor(Math.random()*a.length)];};
   var rnd=function(a,b){return a+Math.floor(Math.random()*(b-a+1));};
-  var SES=DTS.session(), S=null, LOCS=[], RUN=[], cur=0, extra=false, overall=null, overallTouched=false, who={}, DONE=null;
+  var SES=DTS.session(), GH=null, REC=null, S=null, LOCS=[], RUN=[], cur=0, extra=false, overall=null, overallTouched=false, who={}, DONE=null;
 
   function fail(msg){ $('#lockedMsg').textContent=msg; $('#locked').hidden=false; }
   function show(id){ ['cover','run','summary','report'].forEach(function(x){ $('#'+x).hidden=(x!==id); }); window.scrollTo(0,0); }
@@ -144,7 +147,7 @@ td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
   DTS.openBoth(SES.pw,false).then(function(o){
     return DTS.readData('data/situations.enc.json',o.dk).then(function(d){
       if(!d||!Array.isArray(d.topics)||!d.topics.length) throw new Error('The Situations topics have not been set up yet. An admin can add them on Situations setup.');
-      S=d; buildLocations(o.p); boot();
+      S=d; GH=o.p.gh||null; buildLocations(o.p); boot();
     });
   }).catch(function(e){ fail((e&&e.message)||String(e)); });
 
@@ -188,7 +191,7 @@ td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
     var nm=$('#nm').value.trim().replace(/\s+/g,' '), sp=$('#sp').value.trim().replace(/^sp[\s#.\-]*/i,''), e=$('#coverErr');
     if(!nm){ e.textContent='Enter the SP’s name.'; return; } if(!sp){ e.textContent='Enter the SP’s number.'; return; }
     var e2=$('#ev2').value.trim().replace(/\s+/g,' '), e2s=$('#ev2s').value.trim().replace(/^sp[\s#.\-]*/i,'');
-    e.textContent=''; who={name:nm,sp:sp,ev2:e2?(e2+(e2s?', SP '+e2s:'')):'',when:new Date()};
+    e.textContent=''; DTS.begin(); window.onbeforeunload=function(){ return REC?undefined:'This test is in progress. A new visit needs a new login.'; }; who={name:nm,sp:sp,ev2:e2?(e2+(e2s?', SP '+e2s:'')):'',when:new Date()};
     var ids=S.topics.map(function(t){return t.id;}); for(var i=ids.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), x=ids[i]; ids[i]=ids[j]; ids[j]=x; }
     RUN=ids.slice(0,Math.min(S.scenarios||3,ids.length)).map(function(id){ return roll(topic(id)); });
     cur=0; extra=false; overall=null; overallTouched=false; draw(); show('run');
@@ -259,7 +262,7 @@ td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
     RUN.push(roll(pick(unused))); extra=true; overallTouched=false; cur=RUN.length-1; draw(); show('run');
   };
   $('#back').onclick=function(){ cur=0; draw(); show('run'); };
-  $('#finish').onclick=function(){ if(!overall){ $('#sumErr').textContent='Pick the overall result.'; return; } DONE=new Date(); report(); show('report'); };
+  $('#finish').onclick=function(){ if(!overall){ $('#sumErr').textContent='Pick the overall result.'; return; } if(DONE) return; DONE=new Date(); report(); show('report'); toVault(); };
 
   /* ----- report ----- */
   function report(){
@@ -277,7 +280,20 @@ td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
     }).join('');
     $('#rSig').innerHTML='<div><div class="sv">'+esc(SES.evName)+', SP '+esc(SES.evSp)+'</div><div class="lb">Evaluator name</div></div>';
   }
-  $('#edit').onclick=function(){ summary(); };
+  /* ----- vault: saved the moment the test is submitted ----- */
+  function toVault(){
+    var c=counts(), ok=overall==='pass';
+    REC={id:'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),test:'sit',name:who.name,sp:who.sp,ev:SES.evName+', SP '+SES.evSp,ev2:who.ev2||'',start:who.when.getTime(),end:DONE.getTime(),
+      pass:ok,summary:c.p+' of '+c.n+' scenarios passed',overridden:overall!==(c.maj?'pass':'fail'),
+      scenarios:RUN.map(function(r){ var t=topic(r.tid); return {topic:t.name,loc:r.loc,dest:r.dest,people:r.people,vehicles:r.cars,res:r.res,notes:r.notes,
+        done:t.checklist.filter(function(_,k){return r.checks['c'+k];}),missed:t.checklist.filter(function(_,k){return !r.checks['c'+k];}),
+        generalDone:S.general.filter(function(_,k){return r.gen['g'+k];}),generalMissed:S.general.filter(function(_,k){return !r.gen['g'+k];})}; })};
+    sendVault();
+  }
+  function sendVault(){
+    var n=$('#vNote'); n.textContent='Saving to the results vault\u2026';
+    PSSPVault.save(REC,GH).then(function(m){ n.textContent=m; }).catch(function(e){ n.innerHTML='Could not save to the vault: '+esc((e&&e.message)||e)+' '; var b=document.createElement('button'); b.type='button'; b.className='alt'; b.textContent='Try again'; b.onclick=sendVault; n.appendChild(b); });
+  }
   $('#print').onclick=function(){ try{ window.print(); }catch(e){ $('#pHint').textContent='Printing is blocked here. Press Ctrl+P, or download the report file and open it in your browser.'; } };
   $('#dl').onclick=function(){
     var c=$('#report').cloneNode(true); [].forEach.call(c.querySelectorAll('.noprint'),function(n){ n.remove(); }); c.removeAttribute('hidden');

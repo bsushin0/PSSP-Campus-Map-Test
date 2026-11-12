@@ -67,6 +67,8 @@
     name=String(name||'').trim().replace(/\s+/g,' '); sp=String(sp||'').trim().replace(/^sp[\s#.\-]*/i,'');
     s.taker=(name||sp)?{name:name,sp:sp}:null; save(s); return true;
   }
+  /* Called the moment a test is started. The page keeps working with what it already holds, but the unlock is wiped from this tab, so a refresh or a new visit needs the evaluator to log in again. No test can be redone on the spot. */
+  function begin(){ try{ sessionStorage.removeItem(KEY); }catch(e){} }
   /* any click or key press on a page that loads this file counts as activity */
   var lastTouch=0;
   function touch(){ var now=Date.now(); if(now-lastTouch<30000) return; lastTouch=now; var s=session(); if(s) save(s); var a=araw(); if(a&&Date.now()-(a.at||0)<=TIMEOUT_MIN*60000) asave(a); }
@@ -131,7 +133,7 @@
     return 'Autosave is off, so the file was downloaded. Upload '+a.download+' to the '+path.split('/').slice(0,-1).join('/')+' folder in the repository.';
   }
 
-  window.DTS={ROOT:ROOT,isDev:isDev,TIMEOUT_MIN:TIMEOUT_MIN,openPrivate:openPrivate,openBoth:openBoth,readData:readData,sealData:sealData,adminSession:adminSession,adminSignIn:adminSignIn,adminOpen:adminOpen,adminLock:adminLock,adminGate:adminGate,saveFile:saveFile,session:session,unlock:unlock,lock:lock,setTaker:setTaker,ghPut:ghPut};
+  window.DTS={ROOT:ROOT,isDev:isDev,TIMEOUT_MIN:TIMEOUT_MIN,openPrivate:openPrivate,openBoth:openBoth,readData:readData,sealData:sealData,adminSession:adminSession,adminSignIn:adminSignIn,adminOpen:adminOpen,adminLock:adminLock,adminGate:adminGate,saveFile:saveFile,session:session,begin:begin,unlock:unlock,lock:lock,setTaker:setTaker,ghPut:ghPut};
 
   /* a small banner so nobody mistakes a preview copy for the live site */
   if(isDev){ document.addEventListener('DOMContentLoaded',function(){ var b=document.createElement('div'); b.textContent='Preview copy (dev). Not the live testing site.'; b.style.cssText='position:fixed;left:0;bottom:0;z-index:99999;background:#8A6410;color:#fff;font:600 11px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px'; b.className='noprint'; document.body.appendChild(b); }); }

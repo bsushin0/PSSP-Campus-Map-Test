@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><style>:root{color-scheme:light}html{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><meta charset="utf-8">
-<title>PSSP Campus Map Test</title>
+<title>CMT · Campus Map Test</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -309,12 +309,13 @@ a.lnk{display:inline-block}
 .prevl{font:700 11px var(--mono);fill:var(--ink);paint-order:stroke;stroke:var(--bg);stroke-width:3px;pointer-events:none}
 body.placing #map{cursor:crosshair}
 [hidden]{display:none!important}
-</style>
+.fullform{font:600 .8rem 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;opacity:.75;margin:4px 0 0}</style>
 
 <div class="app">
   <header class="bar">
     <div class="id">
-      <h1>PSSP Campus Map Test</h1>
+      <h1>CMT</h1>
+      <p class="fullform">Campus Map Test</p>
       <p class="sub">Click a building, street or landmark, then type what it is called. Full names and abbreviations both count.</p>
       <p class="who" id="who" hidden></p>
       <button type="button" class="lnk" id="hDir">Directions</button> <button type="button" class="lnk" id="hWB">Word bank</button> <a class="lnk" id="hGoTest" href="./" hidden>Go to the test</a>
@@ -504,7 +505,7 @@ body.placing #map{cursor:crosshair}
       <button type="button" class="btn" id="bReport">Printable report</button>
       <button type="button" class="btn alt" id="bEnc" hidden>Save encrypted record</button>
       <button type="button" class="btn alt" id="bArv">Admin review</button>
-      <button type="button" class="btn alt" id="bNewTaker">New test-taker</button>
+      <button type="button" class="btn alt" id="bNewTaker">Done: Testing home</button>
       <button type="button" class="btn" id="bAgain" hidden>Practice again</button>
     </div>
   </div>
@@ -513,7 +514,7 @@ body.placing #map{cursor:crosshair}
 <div class="cover" id="cover" role="dialog" aria-modal="true" aria-labelledby="cvT">
   <div class="cv">
     <p class="org">Purdue Student Safety Patrol</p>
-    <h1 id="cvT">Campus Map Test</h1>
+    <h1 id="cvT">CMT</h1><p class="fullform">Campus Map Test</p>
     <div id="cvPick" class="vpick" role="group" aria-label="Choose the test version">
       <button type="button" class="vopt" data-mode="initial"><em>New SPs</em><b>Initial test</b><span>Every building, landmark and street in the patrol area. Takes up to about 30 minutes.</span></button>
       <button type="button" class="vopt" data-mode="refresher"><em>Yearly update</em><b>Refresher test</b><span>All required &#9733; items, a random selection of the other buildings and streets, about <span id="refPct">40</span>% of the full test. Takes about 10 to 15 minutes.</span></button>
@@ -995,6 +996,7 @@ $('#cvForm').addEventListener('submit',e=>{
   if(!n){$('#cvErr').textContent='Enter your full name.'; $('#cvName').focus(); return;}
   if(!sp){$('#cvErr').textContent='Enter your SP number.'; $('#cvSp').focus(); return;}
   T.name=n; T.sp=sp; T.id=newId(); T.start=Date.now(); T.mode=PRAC?'practice':MODE;
+  if(!PRAC){ try{ DTS.begin(); }catch(e){} }
   const w=$('#who'); w.textContent=`${n} · SP ${sp}${MODE==='refresher'?' · Refresher':''}`; w.hidden=false;
   S.ans.clear(); S.dr.clear(); S.drAsked=false; drNote(); S.rev=false; endReview(); labels.forEach(t=>t.remove()); labels.clear(); S.sel=null; paintAll(); stats(); show('idle');
   $('#cover').hidden=true; fit();
@@ -1004,7 +1006,7 @@ function newTaker(){
   S.ans.clear(); S.dr.clear(); S.drAsked=false; drNote(); S.rev=false; endReview(); S.sel=null; labels.forEach(t=>t.remove()); labels.clear(); paintAll(); stats(); show('idle');
   $('#done').hidden=true; showCover();
 }
-$('#bNewTaker').onclick=newTaker;
+$('#bNewTaker').onclick=()=>{ location.href='../'; };
 $('#bAgain').onclick=()=>{ reset(); };
 if(PRAC) $('#bAgain').hidden=false;
 
@@ -1851,7 +1853,7 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 </style>
 <div id="unl" role="dialog" aria-modal="true" aria-labelledby="unlT">
 <form id="unlF" autocomplete="off">
-<h1 id="unlT">PSSP Campus Map Test</h1>
+<h1 id="unlT">CMT</h1><p class="fullform">Campus Map Test</p>
 <p>An administrator unlocks the test before it starts. Enter the test passcode and the evaluator's full name and SP number (the admin running the test). They print on the report.</p>
 <div><label for="unlP">Test passcode</label><input type="password" id="unlP" autocomplete="current-password"></div>
 <div id="unlEw"><div><label for="unlE">Evaluator full name</label><input type="text" id="unlE" autocomplete="off" placeholder="First and last name"></div><div style="margin-top:12px"><label for="unlES">Evaluator SP number</label><input type="text" id="unlES" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div></div>
