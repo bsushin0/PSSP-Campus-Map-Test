@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><style>:root{color-scheme:light}html{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><meta charset="utf-8">
-<title>PSSP Campus Map Admin</title>
+<title>CMT Setup · PSSP Admin</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -318,7 +318,7 @@ body.placing #map{cursor:crosshair}
       <h1>CMT Admin</h1><p class="sub" style="font-weight:600;letter-spacing:.1em;text-transform:uppercase">Campus Map Test setup</p>
       <p class="sub">Click a building, street or landmark, then type what it is called. Full names and abbreviations both count.</p>
       <p class="who" id="who" hidden></p>
-      <button type="button" class="lnk" id="hDir">Directions</button> <button type="button" class="lnk" id="hWB">Word bank</button> <a class="lnk" id="hGoTest" href="./" hidden>Go to the test</a>
+      <button type="button" class="lnk" id="hDir">Directions</button> <button type="button" class="lnk" id="hWB">Word bank</button> <a class="lnk" id="hGoTest" href="../admin/" hidden>Admin home</a>
       <div class="seg" id="pracMode" role="group" aria-label="What to study" hidden><span class="segk">Study</span><button type="button" data-all="0" aria-pressed="true">Testable only</button><button type="button" data-all="1" aria-pressed="false">All items</button></div>
     </div>
     <div class="stats" role="status" aria-live="polite">
@@ -409,7 +409,7 @@ body.placing #map{cursor:crosshair}
         <div><h2 id="admH">Admin review</h2><p class="muted" id="admSum" style="margin-top:4px"></p></div>
         <div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" class="btn alt" id="admCancel" hidden>Cancel this test</button><button type="button" class="btn alt" id="admExit">Exit admin</button></div>
       </div>
-      <p class="adm-lite muted" id="admLiteNote">Test setup (names, answers, new buildings, settings) is on the <a href="admin.html">admin page</a>. This screen is for cancelling a test and for test records.</p>
+      <p class="adm-lite muted" id="admLiteNote">Test setup (names, answers, new buildings, settings) is on the <a href="../admin/">Admin home</a>. This screen is for cancelling a test and for test records.</p>
       <div class="prog" id="admProg" aria-hidden="true"><i class="p1"></i><i class="p2"></i></div>
       <div class="legend"><span><i class="dot ok"></i>Accurate</span><span><i class="dot bad"></i>Not accurate</span><span><i class="dot"></i>Not reviewed</span><span>&#9733; required &middot; &#9998; edited &middot; &#8856; left out of test</span></div>
       <p class="hint">Click an item on the map or in the list. Every item is labeled on the map while you review.</p>
@@ -528,7 +528,7 @@ body.placing #map{cursor:crosshair}
       <button type="submit" class="btn" id="cvStart">Start the test</button>
     </form>
     <div class="dirs" id="cvDirs"></div>
-    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="admin.html">Test setup</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Lock the test</button></div>
+    <div><a class="lnk" id="cvPrac" href="practice.html">Practice version</a> &nbsp; <a class="lnk" id="cvSetup" href="../admin/">Admin home</a> &nbsp; <button type="button" class="lnk" id="cvAdmin">Lock the test</button></div>
   </div>
 </div>
 
@@ -1402,7 +1402,7 @@ function exitAdmin(){
   labels.forEach(t=>t.remove()); labels.clear(); show('idle'); paintAll(); stats(); fit();
   if(!T.start) showCover();
 }
-$('#admExit').onclick=()=>{ if(ADMPAGE){ location.href='./'; return; } exitAdmin(); };
+$('#admExit').onclick=()=>{ if(ADMPAGE){ location.href='../admin/'; return; } exitAdmin(); };
 let cancelT=null;
 $('#admCancel').onclick=()=>{
   const b=$('#admCancel');
@@ -1427,7 +1427,7 @@ $('#gateForm').addEventListener('submit',async e=>{
   if(n==null||!adminList().includes(n)){ err('That SP number is not authorized for admin access.'); $('#gateSp').focus(); return; }
   ADMID={name:nm,sp:String(n)}; $('#gate').hidden=true; const f=GATE_NEXT; GATE_NEXT=null; f&&f();
 });
-$('#gateCancel').onclick=()=>{ if(ADMPAGE&&!ADM){ location.href='./'; return; } $('#gate').hidden=true; };
+$('#gateCancel').onclick=()=>{ if(ADMPAGE&&!ADM){ location.href='../admin/'; return; } $('#gate').hidden=true; };
 $('#cvAdmin').onclick=()=>{ location.reload(); }; $('#bAdmin').onclick=()=>openGate(enterAdmin,'Admin mode');
 
 /* ---------- admin page: test settings and building updates ---------- */
@@ -1855,11 +1855,11 @@ paintAll(); stats(); fit(); show('idle'); lock(); boot();
 </style>
 <div id="unl" role="dialog" aria-modal="true" aria-labelledby="unlT">
 <form id="unlF" autocomplete="off">
-<h1 id="unlT">PSSP Campus Map Admin</h1>
-<p>Test setup for administrators. Enter the admin passcode, your full name and your SP number. Your name and SP number are recorded with every change you make.</p>
+<h1 id="unlT">CMT Setup</h1>
+<p>You sign in once on the Admin home. If you can see this form, the admin session did not carry over: enter the admin passcode, your full name and your SP number.</p>
 <div><label for="unlP">Admin passcode</label><input type="password" id="unlP" autocomplete="current-password"></div>
 <div><label for="unlN">Full name</label><input type="text" id="unlN" autocomplete="off" placeholder="First and last name"></div><div><label for="unlS">SP number</label><input type="text" id="unlS" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div><div id="unlTw" hidden><label for="unlTp">Test passcode</label><input type="password" id="unlTp" autocomplete="off"></div><button type="submit" id="unlB">Sign in</button>
-<p class="r"><a href="./" style="color:inherit">Back to the test</a></p>
+<p class="r"><a href="../admin/" style="color:inherit">Admin home</a></p>
 <p class="m" id="unlM" role="status"></p>
 </form>
 </div>
@@ -1922,7 +1922,14 @@ $('#unlP').focus();
 (function(){
   /* preview copies (any address other than the live site) save to the dev branch, never to main */
   try{ if(DTS.isDev){ var _t=setInterval(function(){ if(window.__GH){ window.__GH.branch='dev'; } },300); } }catch(e){}
-  var r=document.querySelector('#unlF .r'); if(r){ r.insertAdjacentHTML('beforeend',' &nbsp; <a href="../" style="color:inherit">Testing home</a>'); }
+  /* the Admin home is the only sign-in: no admin session sends you there; with one, this page unlocks itself */
+  var s=DTS.adminSession();
+  if(!s){ location.replace('../admin/?next=map/admin.html'); return; }
+  var u=document.querySelector('#unl'); u.style.visibility='hidden';
+  document.querySelector('#unlP').value=s.pw; document.querySelector('#unlN').value=s.name; document.querySelector('#unlS').value=s.sp;
+  document.querySelector('#unlF').requestSubmit();
+  var tries=0, w=setInterval(function(){ var el=document.querySelector('#unl'); if(!el){ clearInterval(w); return; }
+    var m=document.querySelector('#unlM'), t=(m&&m.textContent)||''; if(++tries>3&&t&&!/^Unlocking/.test(t)){ clearInterval(w); u.style.visibility=''; DTS.adminLock(); } else if(tries>60){ clearInterval(w); u.style.visibility=''; } },250);
 })();
 </script>
 </body></html>

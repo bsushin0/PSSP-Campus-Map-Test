@@ -61,7 +61,7 @@ a.ac:hover,a.ac:focus-visible{border-color:var(--gold)}
   var $=function(s){return document.querySelector(s);};
   var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
   var CTX=null, LINKS={};
-  DTS.adminGate($('#gate'),function(ctx){ CTX=ctx; $('#hub').hidden=false; $('#who').textContent=ctx.who; load(); });
+  DTS.adminGate($('#gate'),function(ctx){ var nx=DTS.nextPath(); if(nx){ location.replace(DTS.ROOT+nx); return; } CTX=ctx; $('#hub').hidden=false; $('#who').textContent=ctx.who; load(); },{login:true});
   $('#lock').onclick=function(){ DTS.adminLock(); location.reload(); };
 
   function card(t,v,cls){ return '<div class="ac"><em class="tag">'+esc(t)+'</em><b style="font-size:1.1rem">'+esc(v)+'</b>'+(cls?'':'')+'</div>'; }

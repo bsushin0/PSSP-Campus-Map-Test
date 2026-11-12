@@ -16,19 +16,7 @@
 <h1>RCT Setup</h1>
 <p class="full">Radio Codes Test</p>
 
-<section id="signin">
-  <h2>Admin sign-in</h2>
-  <p>Enter the admin passcode, your full name and your SP number. Your name and SP number are recorded with every save.</p>
-  <form id="sF" autocomplete="off" style="display:flex;flex-direction:column;gap:14px">
-    <div><label for="sP">Admin passcode</label><input type="password" id="sP" autocomplete="current-password"></div>
-    <div class="row">
-      <div class="grow"><label for="sN">Full name</label><input type="text" id="sN" autocomplete="off" placeholder="First and last name"></div>
-      <div class="grow"><label for="sS">SP number</label><input type="text" id="sS" autocomplete="off" inputmode="numeric" placeholder="Your SP number"></div>
-    </div>
-    <p class="err" id="sErr" role="alert"></p>
-    <div class="row"><button type="submit" id="sB">Sign in</button><a class="btn alt" href="../#testing">Testing home</a></div>
-  </form>
-</section>
+<section id="signin" hidden></section>
 
 <section id="edit" hidden>
   <h2>The codes list</h2>
@@ -40,7 +28,7 @@
   </div>
   <div class="banner">The offline copy in SharePoint (<b>PSSP-Radio-Codes-Test.html</b>) keeps its own list. After you save here, make the same change in that file and archive the old one, as the admin guide describes.</div>
   <p class="err" id="eErr" role="alert"></p>
-  <div class="row"><button type="button" id="save">Save</button><button type="button" class="alt" id="check">Check the list</button><a class="btn alt" href="../#testing">Testing home</a><span class="note" id="eMsg" role="status"></span></div>
+  <div class="row"><button type="button" id="save">Save</button><button type="button" class="alt" id="check">Check the list</button><a class="btn alt" href="../admin/">Admin home</a><span class="note" id="eMsg" role="status"></span></div>
 </section>
 </main>
 
@@ -68,21 +56,14 @@
   }
   function fileText(d){ return '{\n  "maxWrong": '+d.maxWrong+',\n  "shuffle": '+(d.shuffle?'true':'false')+',\n  "items": [\n'+d.items.map(function(i){ return '    '+JSON.stringify(i); }).join(',\n')+'\n  ]\n}\n'; }
 
-  $('#sF').addEventListener('submit',async function(e){
-    e.preventDefault(); var m=$('#sErr'); m.textContent='Signing in…'; $('#sB').disabled=true;
+  DTS.adminGate($('#signin'),async function(ctx){
     try{
-      var nm=$('#sN').value.trim().replace(/\s+/g,' '), sp=$('#sS').value.trim().replace(/^sp[\s#.\-]*/i,'');
-      if(nm.split(' ').length<2) throw new Error('Enter your full name (first and last).');
-      if(!/^[0-9]+$/.test(sp)) throw new Error('Enter your SP number (digits only).');
-      P=await DTS.openPrivate($('#sP').value,true);
-      if(Array.isArray(P.admins)&&P.admins.indexOf(+sp)<0) throw new Error('SP '+sp+' is not on the admin list.');
-      WHO=nm+', SP '+sp;
+      P=ctx.p; WHO=ctx.who;
       var j=await CODES.load(DTS.ROOT);
       $('#txt').value=toText(j.items); $('#mw').value=(typeof j.maxWrong==='number')?j.maxWrong:2; $('#sh').checked=j.shuffle!==false;
-      $('#sP').value=''; m.textContent=''; $('#signin').hidden=true; $('#edit').hidden=false;
+      $('#edit').hidden=false;
       if(!(P.gh&&P.gh.token)) $('#eMsg').textContent='Autosave is off, so Save will download the file for you to upload to the data folder.';
-    }catch(er){ m.textContent=(er&&er.message)||String(er); }
-    $('#sB').disabled=false;
+    }catch(er){ $('#signin').hidden=false; $('#signin').innerHTML='<p class="err">'+((er&&er.message)||er)+'</p>'; }
   });
   $('#check').onclick=function(){ try{ var d=parse(); $('#eErr').textContent=''; $('#eMsg').textContent='The list is fine: '+d.items.length+' codes, pass with no more than '+d.maxWrong+' wrong.'; }catch(er){ $('#eMsg').textContent=''; $('#eErr').textContent=er.message; } };
   $('#save').onclick=async function(){

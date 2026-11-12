@@ -110,9 +110,13 @@
     try{ var o=await openBoth(s.pw,true); o.name=s.name; o.sp=s.sp; o.who=s.name+', SP '+s.sp; asave(s); return o; }catch(e){ adminLock(); return null; }
   }
   /* Puts the admin sign-in form into a <section> and calls ready(ctx) once an admin is in. Already signed in: no form. */
-  function adminGate(sec, ready){
+  /* The sign-in form lives only on the admin hub (opts.login). Every other admin page sends you there and brings you back after. */
+  function nextPath(){ var q=(location.search.match(/[?&]next=([^&]*)/)||[])[1]; if(!q) return ''; try{ q=decodeURIComponent(q); }catch(e){ return ''; } return /^[A-Za-z0-9_\-\/.]+\.html$|^[A-Za-z0-9_\-\/]+\/$/.test(q)&&q.indexOf('..')<0&&q.charAt(0)!=='/'?q:''; }
+  function adminGate(sec, ready, opts){
+    opts=opts||{};
     function go(ctx){ sec.hidden=true; ready(ctx); }
     adminOpen().then(function(o){ if(o) return go(o);
+      if(!opts.login){ var rel=location.href.slice(ROOT.length).split(/[?#]/)[0]; if(rel&&rel.slice(-1)!=='/'&&!/\.html$/.test(rel)) rel+='.html'; location.replace(ROOT+'admin/'+(rel?'?next='+encodeURIComponent(rel):'')); return; }
       sec.hidden=false;
       sec.innerHTML='<h2>Admin sign-in</h2><p>Enter the admin passcode, your full name and your SP number. Your name and SP number are recorded with every save. You sign in once for all setup pages.</p>'
         +'<form autocomplete="off" style="display:flex;flex-direction:column;gap:14px"><div><label for="agP">Admin passcode</label><input type="password" id="agP" autocomplete="current-password"></div>'
@@ -133,7 +137,7 @@
     return 'Autosave is off, so the file was downloaded. Upload '+a.download+' to the '+path.split('/').slice(0,-1).join('/')+' folder in the repository.';
   }
 
-  window.DTS={ROOT:ROOT,isDev:isDev,TIMEOUT_MIN:TIMEOUT_MIN,openPrivate:openPrivate,openBoth:openBoth,readData:readData,sealData:sealData,adminSession:adminSession,adminSignIn:adminSignIn,adminOpen:adminOpen,adminLock:adminLock,adminGate:adminGate,saveFile:saveFile,session:session,begin:begin,unlock:unlock,lock:lock,setTaker:setTaker,ghPut:ghPut};
+  window.DTS={nextPath:nextPath,ROOT:ROOT,isDev:isDev,TIMEOUT_MIN:TIMEOUT_MIN,openPrivate:openPrivate,openBoth:openBoth,readData:readData,sealData:sealData,adminSession:adminSession,adminSignIn:adminSignIn,adminOpen:adminOpen,adminLock:adminLock,adminGate:adminGate,saveFile:saveFile,session:session,begin:begin,unlock:unlock,lock:lock,setTaker:setTaker,ghPut:ghPut};
 
   /* a small banner so nobody mistakes a preview copy for the live site */
   if(isDev){ document.addEventListener('DOMContentLoaded',function(){ var b=document.createElement('div'); b.textContent='Preview copy (dev). Not the live testing site.'; b.style.cssText='position:fixed;left:0;bottom:0;z-index:99999;background:#8A6410;color:#fff;font:600 11px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px'; b.className='noprint'; document.body.appendChild(b); }); }
